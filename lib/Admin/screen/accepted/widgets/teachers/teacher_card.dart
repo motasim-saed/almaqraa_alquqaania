@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // استيراد حزمة ماتيريال لتصميم واجهة المستخدم
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة
+import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة فتح الروابط الخارجية
 import '../../../../models/admin_models.dart'; // استيراد نماذج بيانات الأدمن
 import '../../../../controller/accepted/accepted_teachers_controller.dart'; // استيراد متحكم المعلمين المقبولين
 import 'teacher_details_dialog.dart'; // استيراد نافذة تفاصيل المعلم
@@ -137,6 +138,64 @@ class TeacherCard extends StatelessWidget {
                           else
                             const Spacer(),
                           
+                          // زر ثلاث نقاط مع خيار واتساب
+                          if (item.phone.isNotEmpty)
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                                size: 20,
+                              ),
+                              tooltip: 'خيارات',
+                              onSelected: (value) async {
+                                if (value == 'whatsapp') {
+                                  final rawPhone = item.phone.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+                                  final whatsappUri = Uri.parse('https://wa.me/$rawPhone');
+                                  if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
+                                    Get.snackbar(
+                                      'تنبيه',
+                                      'تعذّر فتح واتساب',
+                                      backgroundColor: Colors.redAccent,
+                                      colorText: Colors.white,
+                                      snackPosition: SnackPosition.BOTTOM,
+                                    );
+                                  }
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'whatsapp',
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF25D366),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.chat_rounded,
+                                          color: Colors.white,
+                                          size: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'تواصل بالواتساب',
+                                        style: TextStyle(
+                                          fontFamily: 'Cairo',
+                                          fontSize: 13,
+                                          color: Color(0xFF25D366),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+
                           IconButton(
                             onPressed: () => _confirmDelete(context, item, controller),
                             icon: Icon(

@@ -80,8 +80,8 @@ class FinalExamsController extends GetxController {
           await _supabase // الاستعلام عن الطلاب المنضمين لهذه الحلقة
               .from('circle_members') // الوصول لجدول أعضاء الحلقات
               .select(
-                'student_id, profiles:student_id(full_name)',
-              ) // جلب معرف الطالب واسمه من جدول البروفايلات
+                'student_id, profiles:student_id(full_name, phone)',
+              ) // جلب معرف الطالب واسمه ورقم هاتفه من جدول البروفايلات
               .eq(
                 'circle_id',
                 _circleId!,
@@ -97,11 +97,13 @@ class FinalExamsController extends GetxController {
         final studentName =
             profile?['full_name'] ??
             'unknown_student'.tr; // تعيين الاسم أو نص افتراضي مترجم
+        final studentPhone = profile?['phone']?.toString() ?? ''; // استخراج رقم الهاتف
         initialRecords.add(
           FinalExamRecord(
             // إضافة كائن سجل جديد للقائمة المؤقتة
             studentId: row['student_id'].toString(), // تعيين معرف الطالب
             studentName: studentName, // تعيين اسم الطالب
+            phone: studentPhone,      // تعيين رقم هاتف الطالب
           ),
         );
       }

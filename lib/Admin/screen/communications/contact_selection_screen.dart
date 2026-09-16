@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // استيراد حزمة ماتيريال لتصميم واجهة المستخدم
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة
+import 'package:url_launcher/url_launcher.dart'; // استيراد حزمة فتح الروابط الخارجية (واتساب)
 import '../../controller/chat_controller.dart'; // استيراد متحكم الدردشة الخاص بالمسؤول
 // import '../../models/admin_models.dart'; // استيراد النماذج والبيانات الخاصة بالمسؤول
 import 'package:al_maqraa/Student/pages/chat_screen.dart'; // استيراد شاشة الدردشة الأساسية
@@ -42,14 +43,16 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
   Widget build(BuildContext context) {
     // دالة بناء واجهة المستخدم للشاشة
     return Scaffold(
+      appBar: AppBar(backgroundColor: Colors.indigo,),
       // إرجاع هيكل الشاشة الأساسي الذي يوفر الخلفية والعناصر
       // تمت إزالة اللون الثابت ليدعم الثيم الفاتح والغامق
-      body: Column(
+      body:
+      Column(
         // ترتيب العناصر في اتجاه عمودي (من الأعلى للأسفل)
         children: [
           // قائمة العناصر الموجودة داخل العمود
           _buildHeader(), // استدعاء دالة بناء الهيدر الذي يحتوي على العنوان وحقل البحث
-          const SizedBox(height: 16), // إضافة مسافة فاصلة عمودية بمقدار 16 بكسل
+          const SizedBox(height: 5), // إضافة مسافة فاصلة عمودية بمقدار 16 بكسل
           Expanded(
             child: _buildContactList(),
           ), // بناء قائمة جهات الاتصال وتوسيعها لتأخذ كل المساحة المتاحة
@@ -67,23 +70,11 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
       // حاوية لتصميم وتنسيق الهيدر
       padding: const EdgeInsets.fromLTRB(
         24,
-        48,
+        2,
         24,
-        24,
+        2,
       ), // تحديد الهوامش الداخلية (يسار: 24، أعلى: 48، يمين: 24، أسفل: 24)
-      decoration: BoxDecoration(
-        // تحديد نمط خلفية الحاوية
-        color: theme.cardColor, // لون الخلفية يعتمد على الثيم
-        borderRadius: const BorderRadius.only(
-          // تحديد حواف دائرية للجزء السفلي فقط
-          bottomLeft: Radius.circular(
-            30,
-          ), // حافة دائرية سفلية يسارية بنصف قطر 30
-          bottomRight: Radius.circular(
-            30,
-          ), // حافة دائرية سفلية يمينية بنصف قطر 30
-        ),
-      ),
+
       child: Column(
         // ترتيب عناصر الهيدر بشكل عمودي
         children: [
@@ -92,16 +83,8 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
             // ترتيب زر الرجوع والعنوان بشكل أفقي
             children: [
               // قائمة العناصر داخل الصف
-              IconButton(
-                // زر يحتوي على أيقونة
-                onPressed: () =>
-                    Get.back(), // عند الضغط يتم العودة إلى الشاشة السابقة
-                icon: Icon(
-                  Icons.arrow_back_ios,
-                  color: colorScheme.primary,
-                ), // أيقونة السهم للخلف بلون متوافق
-              ),
-              const SizedBox(width: 8), // مسافة أفقية فاصلة بمقدار 8 بكسل
+
+              const SizedBox(width: 18), // مسافة أفقية فاصلة بمقدار 8 بكسل
               // عنوان الشاشة يتغير بناءً على الدور المطلوب اختياره
               Text(
                 // ودجت لعرض النص
@@ -118,7 +101,7 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20), // مسافة عمودية فاصلة بمقدار 20 بكسل
+          const SizedBox(height: 15), // مسافة عمودية فاصلة بمقدار 20 بكسل
           // حقل البحث لتصفية جهات الاتصال
           TextField(
             // حقل لإدخال النصوص
@@ -240,13 +223,93 @@ class _ContactSelectionScreenState extends State<ContactSelectionScreen> {
                   fontSize: 12,
                 ), // لون باهت وحجم خط صغير
               ),
-              trailing: Icon(
-                // أيقونة تظهر في نهاية العنصر للإشارة لإمكانية الإرسال
-                Icons.send_rounded, // شكل أيقونة الإرسال (سهم)
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary, // لون الأيقونة متوافق مع الثيم
-                size: 20, // حجم الأيقونة 20 بكسل
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PopupMenuButton<String>(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: Theme.of(context).hintColor,
+                      size: 20,
+                    ),
+                    tooltip: 'خيارات',
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onSelected: (value) async {
+                      if (value == 'whatsapp') {
+                        final phone = user.phone;
+                        if (phone != null && phone.trim().isNotEmpty) {
+                          final rawPhone = phone.replaceAll(
+                            RegExp(r'[\s\-\(\)\+]'),
+                            '',
+                          );
+                          final whatsappUri = Uri.parse('https://wa.me/$rawPhone');
+                          if (!await launchUrl(
+                            whatsappUri,
+                            mode: LaunchMode.externalApplication,
+                          )) {
+                            Get.snackbar(
+                              'تنبيه',
+                              'تعذّر فتح واتساب',
+                              backgroundColor: Colors.redAccent,
+                              colorText: Colors.white,
+                              snackPosition: SnackPosition.BOTTOM,
+                            );
+                          }
+                        } else {
+                          Get.snackbar(
+                            'تنبيه',
+                            'لا يوجد رقم هاتف مسجل لهذا المستخدم',
+                            backgroundColor: Colors.orangeAccent,
+                            colorText: Colors.white,
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        }
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'whatsapp',
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF25D366),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.chat_rounded,
+                                color: Colors.white,
+                                size: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'تواصل بالواتساب',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 13,
+                                color: Color(0xFF25D366),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    // أيقونة تظهر في نهاية العنصر للإشارة لإمكانية الإرسال
+                    Icons.send_rounded, // شكل أيقونة الإرسال (سهم)
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary, // لون الأيقونة متوافق مع الثيم
+                    size: 20, // حجم الأيقونة 20 بكسل
+                  ),
+                ],
               ),
               onTap: () {
                 // الوظيفة التي يتم تنفيذها عند الضغط على العنصر

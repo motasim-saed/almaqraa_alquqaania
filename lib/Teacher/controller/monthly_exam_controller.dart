@@ -316,7 +316,7 @@ class MonthlyExamController extends GetxController {
         colorText: Colors.white,
       );
       // طباعة الخطأ في وحدة التحكم لتسهيل عملية التصحيح
-      debugPrint('Error saving month data: $e');
+      // debugPrint('Error saving month data: $e');
     }
   }
 } // نهاية كلاس متحكم الاختبارات الشهرية

@@ -340,27 +340,23 @@ class MonthlyExamScreen extends StatelessWidget {
                   RegExp(r'(^\d*\.?\d*)'),
                 ), // السماح فقط بالأرقام والنقطة العشرية
                 TextInputFormatter.withFunction((oldValue, newValue) {
-                  // وظيفة مخصصة لمنع إدخال قيمة أكبر من الحد الأقصى مع إظهار تنبيه
-                  if (newValue.text.isEmpty)
+                  // وظيفة مخصصة لتقييد القيمة بالحد الأقصى تلقائياً
+                  if (newValue.text.isEmpty) {
                     return newValue; // السماح بمسح الحقل
-                  final double? enteredScore = double.tryParse(
-                    newValue.text,
-                  ); // محاولة تحويل النص لرقم
+                  }
+                  final double? enteredScore = double.tryParse(newValue.text);
                   final double maxScore =
                       double.tryParse(max) ?? 100.0; // تحديد الدرجة القصوى
 
-                  // إذا كانت القيمة المدخلة أكبر من الدرجة القصوى، يتم رفض التغيير وإظهار رسالة
+                  // إذا كانت القيمة المدخلة أكبر من الدرجة القصوى، يتم التقييد لأعلى درجة تلقائياً
                   if (enteredScore != null && enteredScore > maxScore) {
-                    // إظهار رسالة تنبيه منبثقة (Snackbar)
-                    Get.snackbar(
-                      'alert'.tr, // عنوان التنبيه
-                      '${'score_limit_msg'.tr} $max', // رسالة: لا يمكن تجاوز (50 أو 30 أو 20)
-                      backgroundColor: Colors.redAccent,
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.BOTTOM,
-                      duration: const Duration(seconds: 2),
+                    final maxStr = maxScore == maxScore.toInt()
+                        ? maxScore.toInt().toString()
+                        : maxScore.toString();
+                    return TextEditingValue(
+                      text: maxStr,
+                      selection: TextSelection.collapsed(offset: maxStr.length),
                     );
-                    return oldValue; // العودة للقيمة السابقة
                   }
                   return newValue; // قبول القيمة الجديدة
                 }),

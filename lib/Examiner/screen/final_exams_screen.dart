@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // استيراد حزمة فلاتر الأساسية لتصميم الواجهات
 import 'package:get/get.dart'; // استيراد مكتبة GetX لإدارة الحالة والترجمة
+import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة فتح الروابط الخارجية
 import '../controller/final_exams_controller.dart'; // استيراد متحكم الاختبارات النهائية
 import '../model/final_exam_model.dart'; // استيراد نموذج بيانات سجل الاختبار
 
@@ -188,6 +189,74 @@ class FinalExamsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              // زر ثلاث نقاط يحتوي على خيار التواصل بالواتساب
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+                tooltip: 'خيارات',
+                onSelected: (value) async {
+                  if (value == 'whatsapp') {
+                    final rawPhone = record.phone.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+                    final whatsappUri = Uri.parse('https://wa.me/$rawPhone');
+                    if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
+                      Get.snackbar(
+                        'تنبيه',
+                        'تعذّر فتح واتساب، تأكد من تسجيل رقم الهاتف للطالب',
+                        backgroundColor: Colors.redAccent,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (record.phone.isNotEmpty)
+                    PopupMenuItem(
+                      value: 'whatsapp',
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF25D366),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chat_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'تواصل بالواتساب',
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 13,
+                              color: Color(0xFF25D366),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    PopupMenuItem(
+                      enabled: false,
+                      child: Text(
+                        'لا يوجد رقم هاتف مسجّل',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               // استدعاء ويدجت عرض المجموع الكلي للطالب بصيغة جذابة
               _buildTotalBadge(record.totalScore),
             ],
@@ -197,45 +266,36 @@ class FinalExamsScreen extends StatelessWidget {
           Row(
             children: [
               // بناء حقل إدخال درجة الحفظ
-              _buildScoreCard(
-                context,
-                controller, // تمرير المتحكم
-                index, // اندكس الطالب
-                'hifz', // النوع البرمجي للدرجة
-                'hifz'.tr, // المسمى المترجم (حفظ)
-                '50', // الدرجة القصوى المسموح بها
-                record.hifzScore, // القيمة الحالية من السجل
-                isDark
-                    ? Colors.blueAccent
-                    : Colors.blue, // اللون المميز لهذا القسم (أزرق)
+              _ScoreInputField(
+                key: ValueKey('${record.studentId}_hifz'),
+                label: 'hifz'.tr,
+                maxScore: 50,
+                initialScore: record.hifzScore,
+                color: isDark ? Colors.blueAccent : Colors.blue,
+                onScoreChanged: (val) =>
+                    controller.updateScore(index, 'hifz', val),
               ),
               const SizedBox(width: 12), // مسافة بين حقل الحفظ والتجويد
               // بناء حقل إدخال درجة التجويد
-              _buildScoreCard(
-                context,
-                controller,
-                index,
-                'tajweed', // النوع البرمجي
-                'tajweed'.tr, // المسمى المترجم (تجويد)
-                '30', // الدرجة القصوى
-                record.tajweedScore, // القيمة الحالية
-                isDark
-                    ? Colors.tealAccent
-                    : Colors.teal, // اللون المميز (تيلي/أخضر مزرق)
+              _ScoreInputField(
+                key: ValueKey('${record.studentId}_tajweed'),
+                label: 'tajweed'.tr,
+                maxScore: 30,
+                initialScore: record.tajweedScore,
+                color: isDark ? Colors.tealAccent : Colors.teal,
+                onScoreChanged: (val) =>
+                    controller.updateScore(index, 'tajweed', val),
               ),
               const SizedBox(width: 12), // مسافة بين حقل التجويد والتلاوة
               // بناء حقل إدخال درجة التلاوة
-              _buildScoreCard(
-                context,
-                controller,
-                index,
-                'tilawah', // النوع البرمجي
-                'tilawah'.tr, // المسمى المترجم (تلاوة)
-                '20', // الدرجة القصوى
-                record.tilawahScore, // القيمة الحالية
-                isDark
-                    ? Colors.purpleAccent
-                    : Colors.deepPurple, // اللون المميز (أرجواني غامق)
+              _ScoreInputField(
+                key: ValueKey('${record.studentId}_tilawah'),
+                label: 'tilawah'.tr,
+                maxScore: 20,
+                initialScore: record.tilawahScore,
+                color: isDark ? Colors.purpleAccent : Colors.deepPurple,
+                onScoreChanged: (val) =>
+                    controller.updateScore(index, 'tilawah', val),
               ),
             ],
           ),
@@ -279,97 +339,159 @@ class FinalExamsScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// دالة لبناء حقل إدخال الدرجة لكل تصنيف بشكل منفصل ومنظم
-  Widget _buildScoreCard(
-    BuildContext context,
-    FinalExamsController controller, // المتحكم للتحديث الفوري
-    int studentIndex, // ترتيب الطالب في القائمة
-    String type, // نوع الدرجة (hifz, tajweed, tilawah)
-    String label, // النص المعروض للمستخدم (مترجم)
-    String maxScore, // القيمة القصوى لهذه الدرجة
-    double currentScore, // الدرجة الحالية المدخلة
-    Color color, // اللون المخصص لهذا الحقل
-  ) {
+/// ويدجت مخصص لحقل إدخال الدرجة لضمان بقاء لوحة المفاتيح مفتوحة وتقييد القيم بسلاسة
+class _ScoreInputField extends StatefulWidget {
+  final double initialScore;
+  final double maxScore;
+  final Color color;
+  final String label;
+  final ValueChanged<double> onScoreChanged;
+
+  const _ScoreInputField({
+    super.key,
+    required this.initialScore,
+    required this.maxScore,
+    required this.color,
+    required this.label,
+    required this.onScoreChanged,
+  });
+
+  @override
+  State<_ScoreInputField> createState() => _ScoreInputFieldState();
+}
+
+class _ScoreInputFieldState extends State<_ScoreInputField> {
+  late TextEditingController _controller;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: _formatScore(widget.initialScore),
+    );
+    _focusNode = FocusNode();
+  }
+
+  String _formatScore(double score) {
+    if (score == 0) return '';
+    return score == score.toInt() ? score.toInt().toString() : score.toString();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ScoreInputField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_focusNode.hasFocus && oldWidget.initialScore != widget.initialScore) {
+      final formatted = _formatScore(widget.initialScore);
+      if (_controller.text != formatted) {
+        _controller.text = formatted;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    if (value.trim().isEmpty) {
+      widget.onScoreChanged(0.0);
+      return;
+    }
+
+    final double? parsed = double.tryParse(value);
+    if (parsed != null) {
+      if (parsed > widget.maxScore) {
+        // إذا كان الرقم المدخل أكبر من الحد الأقصى (مثلاً 55 والحد 50)، يثبت على الحد الأقصى تلقائياً
+        final clamped = widget.maxScore;
+        final formattedClamped = _formatScore(clamped);
+        _controller.value = TextEditingValue(
+          text: formattedClamped,
+          selection: TextSelection.collapsed(offset: formattedClamped.length),
+        );
+        widget.onScoreChanged(clamped);
+      } else if (parsed < 0) {
+        _controller.value = const TextEditingValue(
+          text: '0',
+          selection: TextSelection.collapsed(offset: 1),
+        );
+        widget.onScoreChanged(0.0);
+      } else {
+        widget.onScoreChanged(parsed);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // تنسيق عرض الدرجة لإخفاء الفواصل العشرية إذا كانت صفراً (مثال: 5.0 تظهر 5)
-    String scoreText = currentScore == currentScore.toInt()
-        ? currentScore.toInt().toString()
-        : currentScore.toString();
+    final maxScoreText = widget.maxScore == widget.maxScore.toInt()
+        ? widget.maxScore.toInt().toString()
+        : widget.maxScore.toString();
 
     return Expanded(
-      // جعل الحقل يتقاسم المساحة مع الحقول الأخرى بالتساوي
       child: Container(
-        padding: const EdgeInsets.all(12), // مسافة داخلية لحاوية الحقل
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
           color: isDark
-              ? color.withValues(alpha: 0.1)
-              : color.withValues(alpha: 0.04), // خلفية شفافة جداً بلون التمييز
-          borderRadius: BorderRadius.circular(18), // حواف دائرية للحقل
+              ? widget.color.withValues(alpha: 0.1)
+              : widget.color.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: color.withValues(alpha: 0.15),
+            color: widget.color.withValues(alpha: 0.15),
             width: 1.5,
-          ), // إطار خفيف بلون التمييز
+          ),
         ),
         child: Column(
-          // ترتيب التسمية، حقل الإدخال، والدرجة القصوى رأسياً
           children: [
-            // تسمية الحقل (مثل: حفظ، تجويد، الخ)
             Text(
-              label,
+              widget.label,
               style: TextStyle(
-                fontSize: 12, // حجم خط صغير للتسمية
-                color: isDark ? color : color, // لون التسمية نفس لون التمييز
-                fontWeight: FontWeight.bold, // خط عريض للتسمية
+                fontSize: 12,
+                color: widget.color,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 8), // مسافة فاصلة
+            const SizedBox(height: 6),
             IntrinsicWidth(
-              // جعل حقل الإدخال يتناسب عرضه مع محتواه الرقمي
               child: TextFormField(
-                // حقل إدخال النص الخاص بالدرجة
-                key: ValueKey(
-                  '${studentIndex}_${type}_$scoreText',
-                ), // مفتاح فريد لتجنب مشاكل إعادة البناء
-                initialValue: scoreText, // تعيين القيمة الحالية كقيمة ابتدائية
-                textAlign: TextAlign.center, // توسيط الرقم داخل الحقل
+                controller: _controller,
+                focusNode: _focusNode,
+                textAlign: TextAlign.center,
                 keyboardType: const TextInputType.numberWithOptions(
-                  // تحديد لوحة المفاتيح الرقمية مع دعم الفواصل
                   decimal: true,
                 ),
                 style: TextStyle(
-                  fontSize: 20, // حجم رقم الدرجة ليكون واضحاً
-                  fontWeight: FontWeight.bold, // جعل الرقم عريضاً
-                  color: color, // تلوين الرقم بلون التمييز الخاص به
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: widget.color,
                 ),
-                decoration: const InputDecoration(
-                  isDense:
-                      true, // جعل الحقل مضغوطاً لتقليل المساحات البيضاء الزائدة
-                  border: InputBorder
-                      .none, // إخفاء الإطار الافتراضي لـ TextFormField
-                  contentPadding:
-                      EdgeInsets.zero, // إلغاء المسافات الداخلية الافتراضية
+                decoration: InputDecoration(
+                  hintText: '0',
+                  hintStyle: TextStyle(
+                    color: widget.color.withValues(alpha: 0.35),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  isDense: true,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
                 ),
-                onChanged: (value) {
-                  // محاولة تحويل النص المدخل إلى رقم عشري وتحديث المتحكم
-                  double? newScore = double.tryParse(value);
-                  if (newScore != null) {
-                    // استدعاء دالة التحديث في المتحكم لتطبيق التغييرات فورياً
-                    controller.updateScore(studentIndex, type, newScore);
-                  }
-                },
+                onChanged: _onChanged,
               ),
             ),
-            const Divider(height: 12), // خط أفقي فاصل خفيف داخل بطاقة الدرجة
-            // عرض الدرجة القصوى المسموح بها تحت حقل الإدخال (مثال: /50)
+            const Divider(height: 12),
             Text(
-              '/$maxScore',
+              '/$maxScoreText',
               style: TextStyle(
-                fontSize: 11, // حجم خط صغير جداً للتوضيح
-                color: isDark
-                    ? Colors.grey[400]
-                    : Colors.grey[500], // لون رمادي هادئ
-                fontWeight: FontWeight.w500, // سمك خط متوسط
+                fontSize: 11,
+                color: isDark ? Colors.grey[400] : Colors.grey[500],
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

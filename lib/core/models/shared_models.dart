@@ -40,6 +40,9 @@ class ChatUserModel {
   // رقم الدفعة للمستخدم (للفلترة)
   final int? batchNumber;
 
+  // رقم الهاتف للمستخدم (للتواصل عبر الواتساب)
+  final String? phone;
+
   // مُنشئ الكائن (Constructor) لتهيئة البيانات عند إنشاء نسخة جديدة من النموذج
   ChatUserModel({
     required this.id,         // معرف المستخدم (إلزامي)
@@ -51,6 +54,7 @@ class ChatUserModel {
     this.unreadCount = 0,      // عداد غير المقروء (يبدأ بصفر افتراضياً)
     this.avatarUrl,            // رابط الصورة (اختياري)
     this.batchNumber,          // رقم الدفعة (اختياري)
+    this.phone,                // رقم الهاتف (اختياري)
   });
 
   /// دالة لنسخ الكائن مع تعديل بعض الحقول (بقاء الحقول الأخرى كما هي)
@@ -64,6 +68,7 @@ class ChatUserModel {
     int? unreadCount,
     String? avatarUrl,
     int? batchNumber,
+    String? phone,
   }) {
     return ChatUserModel(
       id: id ?? this.id,
@@ -75,6 +80,7 @@ class ChatUserModel {
       unreadCount: unreadCount ?? this.unreadCount,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       batchNumber: batchNumber ?? this.batchNumber,
+      phone: phone ?? this.phone,
     );
   }
 
@@ -90,6 +96,7 @@ class ChatUserModel {
       unreadCount: json['unreadCount'] ?? 0,
       avatarUrl: json['avatar_url'] ?? json['avatarUrl'],
       batchNumber: json['batch_number'] ?? json['batchNumber'],
+      phone: json['phone']?.toString() ?? json['phone_number']?.toString() ?? json['phoneNumber']?.toString(),
     );
   }
 
@@ -105,6 +112,7 @@ class ChatUserModel {
       'unreadCount': unreadCount,
       'avatarUrl': avatarUrl,
       'batch_number': batchNumber,
+      'phone': phone,
     };
   }
 }

@@ -264,9 +264,9 @@ class CircleSupervisorScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                         ],
-                        if (student.phone.isNotEmpty)
+                        if (student.email.isNotEmpty)
                           Text(
-                            student.phone,
+                            student.email,
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 12,

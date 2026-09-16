@@ -119,7 +119,7 @@ mixin ChatModule { // تعريف "ميكسين" (وحدة برمجية) مخصص
     try {
       final response = await supabase // طلب البيانات من جدول البروفايلات
           .from('profiles')
-          .select('id, full_name, role, gender, avatar_url, batch_number') // اختيار الحقول الضرورية فقط
+          .select('id, full_name, role, gender, avatar_url, batch_number, phone') // اختيار الحقول الضرورية فقط
           .neq('role', 'admin') // استبعاد مدراء النظام من القائمة
           .order('full_name'); // ترتيب الأسماء أبجدياً
 
@@ -133,6 +133,7 @@ mixin ChatModule { // تعريف "ميكسين" (وحدة برمجية) مخصص
           role: dataMap['role'] ?? 'student', 
           gender: dataMap['gender'] == 'female' ? Gender.female : Gender.male, 
           batchNumber: dataMap['batch_number'] != null ? int.tryParse(dataMap['batch_number'].toString()) : null,
+          phone: dataMap['phone']?.toString(),
         );
       }).toList(); 
     } catch (e) {

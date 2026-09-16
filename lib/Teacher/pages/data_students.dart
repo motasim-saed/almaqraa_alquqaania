@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // استيراد حزمة ماتيريال الخاصة بواجهة المستخدم
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة
+import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة فتح الروابط الخارجية
 import '../controller/student_monitoring_controller.dart'; // استيراد متحكم مراقبة الطلاب
 import 'student_detail_progress_screen.dart'; // استيراد شاشة تفاصيل تقدم الطالب
 
@@ -149,7 +150,7 @@ class DataStudents extends StatelessWidget {
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.more_vert_rounded),
                             tooltip: 'خيارات',
-                            onSelected: (value) {
+                            onSelected: (value) async {
                               if (value == 'toggle_supervisor') {
                                 controller.toggleCircleSupervisor(student);
                               } else if (value == 'view_details') {
@@ -157,6 +158,19 @@ class DataStudents extends StatelessWidget {
                                 Get.to(
                                   () => StudentDetailProgressScreen(student: student),
                                 );
+                              } else if (value == 'whatsapp') {
+                                // فتح واتساب مع الطالب مباشرةً
+                                final rawPhone = student.phone.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+                                final whatsappUri = Uri.parse('https://wa.me/$rawPhone');
+                                if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
+                                  Get.snackbar(
+                                    'تنبيه',
+                                    'تعذّر فتح واتساب، تأكد من تسجيل رقم الهاتف للطالب',
+                                    backgroundColor: Colors.redAccent,
+                                    colorText: Colors.white,
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                }
                               }
                             },
                             itemBuilder: (context) => [
@@ -170,6 +184,38 @@ class DataStudents extends StatelessWidget {
                                   ],
                                 ),
                               ),
+                              // خيار واتساب - يظهر فقط إذا كان للطالب رقم هاتف مسجّل
+                              if (student.phone.isNotEmpty)
+                                PopupMenuItem(
+                                  value: 'whatsapp',
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 18,
+                                        height: 18,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF25D366),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.chat_rounded,
+                                          color: Colors.white,
+                                          size: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'تواصل بالواتساب',
+                                        style: TextStyle(
+                                          fontFamily: 'Cairo',
+                                          fontSize: 13,
+                                          color: Color(0xFF25D366),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               PopupMenuItem(
                                 value: 'toggle_supervisor',
                                 child: Row(

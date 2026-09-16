@@ -58,7 +58,7 @@ class CircleSupervisorController extends GetxController {
         await fetchCircleStudents();
       }
     } catch (e) {
-      debugPrint('Error checking supervisor status: $e');
+      // debugPrint('Error checking supervisor status: $e');
     } finally {
       isLoading.value = false;
     }
@@ -138,7 +138,7 @@ class CircleSupervisorController extends GetxController {
         applyFilter();
       }
     } catch (e) {
-      debugPrint('Error fetching circle students: $e');
+      // debugPrint('Error fetching circle students: $e');
     }
   }
 
@@ -176,7 +176,7 @@ class CircleSupervisorController extends GetxController {
       await _cacheService.removeData('student_details_full_${record.studentId}');
       return true;
     } catch (e) {
-      debugPrint('Error updating daily record: $e');
+      // debugPrint('Error updating daily record: $e');
       return false;
     }
   }

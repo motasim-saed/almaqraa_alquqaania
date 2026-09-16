@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart'; // استيراد حزمة ماتيريال لتصميم واجهة المستخدم
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة
+import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة فتح الروابط الخارجية
 import '../../../../models/admin_models.dart'; // استيراد نماذج البيانات الخاصة بالأدمن
 import '../../../../controller/accepted/accepted_students_controller.dart'; // استيراد متحكم الطلاب المقبولين
 import 'student_details_dialog.dart'; // استيراد نافذة تفاصيل الطالب
@@ -132,6 +133,64 @@ class StudentCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
+                          // زر واتساب في القائمة المنبثقة
+                          if (item.phone.isNotEmpty)
+                            PopupMenuButton<String>(
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: themeColor,
+                                size: 20,
+                              ),
+                              tooltip: 'خيارات',
+                              onSelected: (value) async {
+                                if (value == 'whatsapp') {
+                                  final rawPhone = item.phone.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+                                  final whatsappUri = Uri.parse('https://wa.me/$rawPhone');
+                                  if (!await launchUrl(whatsappUri, mode: LaunchMode.externalApplication)) {
+                                    Get.snackbar(
+                                      'تنبيه',
+                                      'تعذّر فتح واتساب',
+                                      backgroundColor: Colors.redAccent,
+                                      colorText: Colors.white,
+                                      snackPosition: SnackPosition.BOTTOM,
+                                    );
+                                  }
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: 'whatsapp',
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF25D366),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.chat_rounded,
+                                          color: Colors.white,
+                                          size: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Text(
+                                        'تواصل بالواتساب',
+                                        style: TextStyle(
+                                          fontFamily: 'Cairo',
+                                          fontSize: 13,
+                                          color: Color(0xFF25D366),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(width: 4),
                           Container(
                             decoration: BoxDecoration(
                               color: themeColor.withValues(alpha: 0.1),

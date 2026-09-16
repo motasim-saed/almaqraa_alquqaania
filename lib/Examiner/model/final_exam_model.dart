@@ -2,6 +2,7 @@
 class FinalExamRecord {
   final String studentId;   // المعرف الفريد للطالب في قاعدة البيانات (UUID)
   final String studentName; // الاسم الكامل للطالب المعروض في القائمة
+  final String phone;       // رقم هاتف الطالب للتواصل عبر واتساب
   double hifzScore;         // درجة اختبار الحفظ (الحد الأقصى المسموح 50 درجة)
   double tajweedScore;      // درجة اختبار التجويد (الحد الأقصى المسموح 30 درجة)
   double tilawahScore;      // درجة اختبار التلاوة (الحد الأقصى المسموح 20 درجة)
@@ -10,6 +11,7 @@ class FinalExamRecord {
   FinalExamRecord({
     required this.studentId,   // المعرف حقل إلزامي لتمييز الطالب
     required this.studentName, // اسم الطالب حقل إلزامي للعرض
+    this.phone = '',           // رقم الهاتف (افتراضي: فارغ)
     this.hifzScore = 0.0,      // القيمة الافتراضية لدرجة الحفظ هي صفر
     this.tajweedScore = 0.0,   // القيمة الافتراضية لدرجة التجويد هي صفر
     this.tilawahScore = 0.0,   // القيمة الافتراضية لدرجة التلاوة هي صفر
@@ -30,6 +32,8 @@ class FinalExamRecord {
           json['student_name'] ??     // أو من حقل student_name
           '')                        // قيمة فارغة في حال عدم وجود أي منها
           .toString(),
+      // استخراج رقم هاتف الطالب من العلاقة مع جدول البروفايلات
+      phone: (json['profiles']?['phone'] ?? json['phone'] ?? '').toString(),
       // تحويل درجة الحفظ من نص/ديناميكي إلى رقم عشري (double)
       hifzScore: double.tryParse(json['hifz_score']?.toString() ?? '0') ?? 0.0,
       // تحويل درجة التجويد من نص/ديناميكي إلى رقم عشري (double)

@@ -32,7 +32,7 @@ class FinancialSupportController extends GetxController {
       Get.back();
       Get.snackbar('success'.tr, 'account_added_success'.tr);
     } catch (e) {
-      print('Add account error: $e');
+      // print('Add account error: $e');
       Get.snackbar('error'.tr, 'failed_to_add_account'.tr);
     }
   }
@@ -44,7 +44,7 @@ class FinancialSupportController extends GetxController {
       Get.back();
       Get.snackbar('success'.tr, 'account_updated_success'.tr);
     } catch (e) {
-      print('Update account error: $e');
+      // print('Update account error: $e');
       Get.snackbar('error'.tr, 'failed_to_update_account'.tr);
     }
   }
@@ -55,7 +55,7 @@ class FinancialSupportController extends GetxController {
       accounts.removeWhere((element) => element.id == id);
       Get.snackbar('success'.tr, 'account_deleted_success'.tr);
     } catch (e) {
-      print('Delete account error: $e');
+      // print('Delete account error: $e');
       Get.snackbar('error'.tr, 'failed_to_delete_account'.tr);
     }
   }

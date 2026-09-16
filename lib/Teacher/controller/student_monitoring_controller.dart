@@ -151,7 +151,7 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
                 .update({'supervisor_id': student.id})
                 .eq('id', circleId);
           } catch (e) {
-            debugPrint('Note: circles supervisor_id update: $e');
+            // debugPrint('Note: circles supervisor_id update: $e');
           }
           _storage.write('circle_supervisor_$circleId', student.id);
         }
@@ -183,7 +183,7 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
                 .update({'supervisor_id': null})
                 .eq('id', circleId);
           } catch (e) {
-            debugPrint('Note: circles clear supervisor_id: $e');
+            // debugPrint('Note: circles clear supervisor_id: $e');
           }
           _storage.remove('circle_supervisor_$circleId');
         }

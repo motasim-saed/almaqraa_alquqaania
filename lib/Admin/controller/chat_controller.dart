@@ -101,7 +101,7 @@ class AdminChatController extends GetxController {
         messageId,
       ); // طلب حذفها من قاعدة البيانات السحابية.
     } catch (e) {
-      debugPrint('Error deleting message: $e');
+      // debugPrint('Error deleting message: $e');
     }
   }
 
@@ -213,7 +213,7 @@ class AdminChatController extends GetxController {
       await _chatCacheService.saveChats(result);
       chats.assignAll(result);
     } catch (e) {
-      debugPrint('Error fetching chats: $e');
+      // debugPrint('Error fetching chats: $e');
     } finally {
       isLoading.value = false;
     }
@@ -245,7 +245,7 @@ class AdminChatController extends GetxController {
       );
       if (success) await fetchChats();
     } catch (e) {
-      debugPrint('Error sending message: $e');
+      // debugPrint('Error sending message: $e');
     } finally {
       isSending.value = false;
     }
@@ -257,7 +257,7 @@ class AdminChatController extends GetxController {
       final result = await _repository.getAllUserProfiles();
       allUserProfiles.assignAll(result);
     } catch (e) {
-      debugPrint('Error fetching user profiles: $e');
+      // debugPrint('Error fetching user profiles: $e');
     }
   }
 
