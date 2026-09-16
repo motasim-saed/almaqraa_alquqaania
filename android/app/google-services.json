@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "524389477177",
+    "project_id": "almaqraa-9c0e5",
+    "storage_bucket": "almaqraa-9c0e5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524389477177:android:5d561dda2f4062a260d6e8",
+        "android_client_info": {
+          "package_name": "com.example.al_magraa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAo98JWjm5kgZmd38ncBnvSY41Nkd7bIhw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524389477177:android:fde9af513cc820a760d6e8",
+        "android_client_info": {
+          "package_name": "com.example.al_maqraa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAo98JWjm5kgZmd38ncBnvSY41Nkd7bIhw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

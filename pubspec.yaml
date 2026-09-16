@@ -1,0 +1,75 @@
+name: al_maqraa
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  get: ^4.7.3
+  cupertino_icons: ^1.0.8
+  flutter_launcher_icons: ^0.14.4
+  flutter_dotenv: ^6.0.0
+  supabase_flutter: ^2.12.0
+  shared_preferences: ^2.5.3
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.2
+  http: ^1.2.0
+  dio: ^5.4.0
+  flutter_linkify: ^6.0.0
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.1
+  connectivity_plus: ^7.0.0
+  excel: ^4.0.6
+  pdf: ^3.11.3
+  printing: ^5.13.0
+  image_picker: ^1.1.2
+  share_plus: ^7.2.2
+  open_filex: ^4.5.3
+  glaze_nav_bar: ^1.2.1
+  file_picker: ^10.3.10
+  sqflite: ^2.4.2
+  sqflite_common_ffi: ^2.3.4
+  sqlite3_flutter_libs: ^0.5.24
+  path: ^1.9.1
+  intl: ^0.20.2
+  url_launcher: ^6.3.1
+  quran: ^1.3.3
+  flutter_quran: ^0.0.4
+  get_storage: ^2.1.1
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+  firebase_core: ^4.6.0
+  firebase_messaging: ^16.1.3
+  app_badge_plus: ^1.2.0
+  window_manager: ^0.5.1
+  flutter_native_splash: ^2.4.4
+  gal: ^2.3.2
+  showcaseview: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assetes/images/
+    - assetes/pdf/tajweed/
+  
+  fonts:
+    - family: Uthmanic
+      fonts:
+        - asset: assetes/fonts/uthmanic.ttf
+
+flutter_launcher_icons :
+  android : "launcher_icons"
+  ios : true
+  image_path : "assetes/images/maqraa.png"
+  adaptive_icon_foreground : "assetes/images/maqraa.png"
