@@ -98,4 +98,9 @@ class CacheService extends GetxService {
   Future<bool> removeData(String key) async {
     return await _prefs.remove(key); // حذف المفتاح والبيانات المرتبطة به من الجهاز
   }
+
+  /// إبطال الكاش (اسم بديل لـ removeData)
+  Future<bool> invalidate(String key) async {
+    return await removeData(key);
+  }
 }

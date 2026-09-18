@@ -76,7 +76,7 @@ class StudentCard extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  '${'level'.tr}: ${item.level}',
+                                  '${'level'.tr}: ${item.level.tr}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Theme.of(context).hintColor,

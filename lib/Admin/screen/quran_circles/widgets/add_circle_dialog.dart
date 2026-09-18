@@ -617,7 +617,7 @@ class _AddCircleDialogState extends State<AddCircleDialog> {
                         ),
                       ),
                       subtitle: Text(
-                        "${'level'.tr}: ${s.level} | ${'age'.tr}: ${s.age ?? '?'}",
+                        "${'level'.tr}: ${s.level.tr} | ${'age'.tr}: ${s.age ?? '?'}",
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark ? Colors.white60 : Colors.black54,

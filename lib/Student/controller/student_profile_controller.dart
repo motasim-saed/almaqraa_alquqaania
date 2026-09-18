@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get_storage/get_storage.dart';
 // ignore: library_prefixes
 import 'package:al_maqraa/core/controllers/profile_controller.dart' as CoreProfile;
+import 'package:al_maqraa/core/utils/quran_categories.dart';
 
 class StudentProfileController extends GetxController {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -28,17 +29,7 @@ class StudentProfileController extends GetxController {
 
   var selectedCategory = 'full_quran'.obs;
 
-  final List<String> categoryKeys = [
-    'beginner',
-    '5_parts',
-    '10_parts',
-    '15_parts',
-    '20_parts',
-    '25_parts',
-    'full_quran',
-    'readings',
-    'ijazas',
-  ];
+  final List<String> categoryKeys = quranCategoryKeys;
 
   @override
   void onInit() {
@@ -87,8 +78,19 @@ class StudentProfileController extends GetxController {
       // 2. Student Data
       try {
         final studentData = await _supabase.from('students').select().eq('user_id', user.id).maybeSingle();
+        String level = normalizeCategory(studentData?['hifz_level']?.toString() ?? '');
+        if (!categoryKeys.contains(level)) {
+          final reg = await _supabase.from('registration_requests').select('hifz_level').eq('email', user.email ?? '').maybeSingle();
+          final regLevel = normalizeCategory(reg?['hifz_level']?.toString() ?? '');
+          if (categoryKeys.contains(regLevel)) {
+            level = regLevel;
+            await _supabase.from('students').upsert({
+              'user_id': user.id,
+              'hifz_level': level,
+            }, onConflict: 'user_id');
+          }
+        }
         if (studentData != null) {
-          String level = studentData['hifz_level'] ?? 'full_quran';
           selectedCategory.value = categoryKeys.contains(level) ? level : 'full_quran';
 
           if (batchNumberController.text.isEmpty || batchNumberController.text == 'غير محدد') {

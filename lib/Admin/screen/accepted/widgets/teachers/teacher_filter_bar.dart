@@ -50,9 +50,20 @@ class TeacherFilterBar extends StatelessWidget {
           // حساب عدد المعلمين الذين لا يحتاجون لكفالة
           final notNeededSponsorshipCount = teachers.where((t) => t.canCoverBalance).length;
 
+          // الكفالة هي الفلتر الرئيسي: تُحسب أرقام التوزيع بعد تطبيقها أولاً
+          final sf = sponsorshipFilter.value;
+          final sponsoredFiltered = teachers
+              .where(
+                (t) =>
+                    sf == 'all' ||
+                    (sf == 'needed' && !t.canCoverBalance) ||
+                    (sf == 'not_needed' && t.canCoverBalance),
+              )
+              .toList();
+          final sponsoredCount = sponsoredFiltered.length;
           // حساب الأعداد الحقيقية للتوزيع بناءً على ربط الحلقات عبر المتحكم
-          final distributedCount = teachers.where((t) => controller.isTeacherDistributed(t.id)).length;
-          final notDistributedCount = allCount - distributedCount; // حساب عدد غير الموزعين
+          final distributedCount = sponsoredFiltered.where((t) => controller.isTeacherDistributed(t.id)).length;
+          final notDistributedCount = sponsoredCount - distributedCount; // حساب عدد غير الموزعين
 
           return Row(
             children: [
@@ -87,10 +98,10 @@ class TeacherFilterBar extends StatelessWidget {
                 ), // رسم خط عمودي فاصل بين الأقسام
               ),
 
-              // قسم التوزيع (عرض حالة توزيع المعلمين على الحلقات)
+              // قسم التوزيع (عرض حالة توزيع المعلمين على الحلقات بعد فلترة الكفالة)
               Text('${'distribution'.tr}: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               FilterChipWidget(
-                label: '${'all'.tr} ($allCount)', // خيار عرض الجميع في التوزيع
+                label: '${'all'.tr} ($sponsoredCount)', // خيار عرض المتبقي بعد الكفالة
                 isSelected: distributionFilter.value == 'all', // حالة الاختيار
                 onTap: () => distributionFilter.value = 'all', // تنفيذ الفلترة للكل
               ),

@@ -79,6 +79,7 @@ class StudentDetailProgressScreen extends StatelessWidget {
             title: '${'year_colon'.tr} ${p.year}',
             description: p.goalDescription,
             color: Colors.indigo,
+            isAnnual: true,
             onDelete: () => _confirmDelete(Get.context!, () => controller.deleteAnnualPlan(student.id, p.id)),
           ),
         ),
@@ -90,6 +91,7 @@ class StudentDetailProgressScreen extends StatelessWidget {
             title: '${p.month}/${p.year}',
             description: p.goalDescription,
             color: Colors.teal,
+            isAnnual: false,
             onDelete: () => _confirmDelete(Get.context!, () => controller.deleteMonthlyPlan(student.id, p.id)),
           ),
         ),
@@ -97,7 +99,14 @@ class StudentDetailProgressScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPlanCard({required BuildContext context, required String title, required String description, required Color color, required VoidCallback onDelete}) {
+  Widget _buildPlanCard({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required Color color,
+    required VoidCallback onDelete,
+    bool isAnnual = false,
+  }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: color.withOpacity(0.2))),
@@ -114,7 +123,15 @@ class StudentDetailProgressScreen extends StatelessWidget {
               ],
             ),
           ),
-          Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: PlanStatsWidget(description: description, isCompact: true, color: color)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: PlanStatsWidget(
+              description: description,
+              isCompact: true,
+              color: color,
+              isAnnual: isAnnual,
+            ),
+          ),
         ],
       ),
     );

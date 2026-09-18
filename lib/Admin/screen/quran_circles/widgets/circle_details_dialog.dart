@@ -94,7 +94,7 @@ class CircleDetailsDialog extends StatelessWidget {
                             child: Icon(Icons.school, size: 18),
                           ),
                           title: Text(s.name),
-                          subtitle: Text(s.level),
+                          subtitle: Text(s.level.tr),
                         );
                       },
                     ),

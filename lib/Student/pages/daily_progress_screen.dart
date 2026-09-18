@@ -262,6 +262,11 @@ class DailyProgressScreen extends StatelessWidget {
     final realCurrentMonth = now.month;
     final realCurrentYear = now.year;
 
+    // توسيط الشهر الحالي تلقائياً فور بناء الواجهة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.scrollToSelectedMonth();
+    });
+
     return Container(
       height: 100,
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -274,6 +279,7 @@ class DailyProgressScreen extends StatelessWidget {
         ),
       ),
       child: ListView.builder(
+        controller: controller.monthScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: 12,
@@ -289,8 +295,9 @@ class DailyProgressScreen extends StatelessWidget {
               onTap: () => controller.changeSelectedMonth(monthNumber),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
+                width: 95,
                 margin: const EdgeInsets.only(left: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Theme.of(context).primaryColor

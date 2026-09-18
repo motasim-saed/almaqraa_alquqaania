@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart'; // استيراد مكتبة فلاتر الأساسية لتصميم الواجهات
+import '../../../../core/utils/clipboard_utils.dart'; // استيراد دالة النسخ إلى الحافظة
 
 // ويدجت مخصصة لعرض صف من التفاصيل (أيقونة، عنوان، وقيمة) - DetailRowWidget
 class DetailRowWidget extends StatelessWidget {
   final IconData icon; // تعريف متغير للأيقونة المراد عرضها
   final String label; // تعريف متغير لنص العنوان (الوصف)
   final String value; // تعريف متغير لنص القيمة المراد عرضها
+  final bool copyable; // هل يمكن نسخ قيمة هذا الصف
 
   // مشيد الويدجت (Constructor) لتهيئة القيم المطلوبة عند الاستخدام
   const DetailRowWidget({
@@ -12,6 +14,7 @@ class DetailRowWidget extends StatelessWidget {
     required this.icon, // معامل الأيقونة مطلوب
     required this.label, // معامل العنوان مطلوب
     required this.value, // معامل القيمة مطلوب
+    this.copyable = true, // النسخ مفعّل افتراضياً
   });
 
   @override
@@ -51,6 +54,20 @@ class DetailRowWidget extends StatelessWidget {
               ),
             ),
           ), 
+          // زر نسخ صغير لقيمة الصف (البريد، الهاتف، ...)
+          if (copyable && value.trim().isNotEmpty && value.trim() != '-')
+            InkWell(
+              onTap: () => copyToClipboard(value, label: label),
+              borderRadius: BorderRadius.circular(6),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(
+                  Icons.copy_rounded,
+                  size: 15,
+                  color: isDarkMode ? Colors.indigoAccent : primaryColor,
+                ),
+              ),
+            ),
         ],
       ),
     );

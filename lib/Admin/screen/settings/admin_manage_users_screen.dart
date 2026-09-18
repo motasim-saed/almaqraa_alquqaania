@@ -1,4 +1,5 @@
 import 'package:al_maqraa/Admin/controller/settings/admin_settings_controller.dart';
+import 'package:al_maqraa/core/utils/clipboard_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -344,6 +345,15 @@ class AdminManageUsersScreen extends StatelessWidget {
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    _buildActionButton(
+                      icon: Icons.copy_rounded,
+                      color: Colors.indigo,
+                      onPressed: () => copyToClipboard(
+                        user.email,
+                        label: 'email'.tr,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
                     _buildActionButton(
                       icon: Icons.edit_rounded,
                       color: Colors.blue,

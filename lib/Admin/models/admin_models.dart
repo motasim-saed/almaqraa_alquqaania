@@ -1,4 +1,5 @@
 import '../../core/models/shared_models.dart'; // استيراد النماذج المشتركة من المجلد الأساسي
+import '../../core/utils/quran_categories.dart'; // استيراد ثوابت وتوحيد فئات الحفظ
 export '../../core/models/shared_models.dart'; // تصدير النماذج المشتركة لتوفير الوصول إليها
 
 /// نموذج بيانات المعلم (TeacherModel)
@@ -149,7 +150,7 @@ class StudentModel { // تعريف كلاس بيانات الطالب
       phone: json['phone'] ?? json['phone_number'] ?? '', // استخراج الهاتف
       academicNumber: json['academic_number'] ?? '', // استخراج الرقم الأكاديمي
       privateCode: json['private_code'] ?? '', // استخراج الكود
-      level: json['hifz_level'] ?? json['level'] ?? '', // استخراج المستوى
+      level: normalizeCategory(json['hifz_level'] ?? json['level'] ?? ''), // استخراج المستوى مع توحيد الصيغة
       date: json['joined_at'] ?? json['created_at'] ?? json['date'] ?? '', // استخراج التاريخ
       gender: json['gender'] == 'female' ? Gender.female : Gender.male, // استخراج الجنس
       isDistributed: json['is_distributed'] ?? json['isDistributed'] ?? false, // استخراج حالة التوزيع

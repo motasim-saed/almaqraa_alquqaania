@@ -141,7 +141,7 @@ class DataStudents extends StatelessWidget {
                         ],
                       ),
                       subtitle: Text(
-                        '${'level'.tr}: ${student.level}',
+                        '${'level'.tr}: ${student.level.tr}',
                         style: const TextStyle(fontFamily: 'Cairo', fontSize: 12),
                       ), // عرض مستوى الطالب مترجماً
                       trailing: Row(

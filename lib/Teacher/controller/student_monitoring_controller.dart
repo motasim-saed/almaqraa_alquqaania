@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart'; // استيراد حزمة ماتيريال للواجهات والسمات
 import 'package:get/get.dart'; // استيراد GetX لإدارة الحالة والترجمة
 import 'package:get_storage/get_storage.dart';
@@ -7,6 +8,7 @@ import '../../Admin/models/admin_models.dart'; // نماذج الخطط السن
 import '../../Student/models/student_models.dart'; // نموذج بيانات الطالب والسجلات اليومية
 import 'package:supabase_flutter/supabase_flutter.dart'; // حزمة التعامل مع قاعدة بيانات سوبابيس
 import '../../core/services/cache_service.dart'; // خدمة التخزين المحلي (الكاش)
+import '../../core/services/connectivity_service.dart';
 
 /// متحكم مراقبة الطلاب: مسؤول عن جلب بيانات الطلاب وخططهم وسجلاتهم اليومية للمعلم
 class StudentMonitoringController extends GetxController { // تعريف الفئة كمتحكم GetX
@@ -23,10 +25,54 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
   var isDetailLoading = false.obs; // متغير لمراقبة حالة تحميل تفاصيل الطالب
   var isUpdatingRecord = false.obs; // متغير لمراقبة عملية تحديث السجلات ومنع التكرار
 
+  StreamSubscription? _connectivitySub;
+
   @override // إعادة تعريف دالة البدء
   void onInit() { // تُستدعى عند بدء عمل المتحكم
     super.onInit(); // استدعاء دالة البدء للأب
     fetchStudents(); // البدء بجلب قائمة الطلاب المنضمين للمعلم
+    _listenToConnectivity();
+  }
+
+  void _listenToConnectivity() {
+    if (Get.isRegistered<ConnectivityService>()) {
+      _connectivitySub = Get.find<ConnectivityService>().isConnected.listen((connected) {
+        if (connected) {
+          _syncPendingSupervisorUpdates();
+          fetchStudents();
+        }
+      });
+    }
+  }
+
+  @override
+  void onClose() {
+    _connectivitySub?.cancel();
+    super.onClose();
+  }
+
+  Future<void> _syncPendingSupervisorUpdates() async {
+    try {
+      final keys = _storage.getKeys();
+      for (var key in keys) {
+        if (key.toString().startsWith('pending_supervisor_')) {
+          final circleId = key.toString().replaceFirst('pending_supervisor_', '');
+          final targetStudentId = _storage.read(key)?.toString();
+          if (targetStudentId != null && targetStudentId.isNotEmpty) {
+            await Supabase.instance.client
+                .from('circles')
+                .update({'supervisor_id': targetStudentId})
+                .eq('id', circleId);
+          } else {
+            await Supabase.instance.client
+                .from('circles')
+                .update({'supervisor_id': null})
+                .eq('id', circleId);
+          }
+          _storage.remove(key);
+        }
+      }
+    } catch (_) {}
   }
 
   /// جلب قائمة الطلاب التابعين للمعلم الحالي مع نظام الكاش وتصحيح معالجة الأخطاء والتحديث الصامت
@@ -61,10 +107,13 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
           }
         },
         fetchFromServer: () async { // وظيفة جلب البيانات من السيرفر في حال عدم وجود كاش
-          // جلب الحلقات المرتبطة بالمعلم
+          // مزامنة أي تعديل معلق أولاً
+          await _syncPendingSupervisorUpdates();
+
+          // جلب الحلقات المرتبطة بالمعلم مع معرف المشرف
           final List<dynamic> circlesResponse = await Supabase.instance.client
               .from('circles')
-              .select('id, name')
+              .select('id, name, supervisor_id')
               .eq('teacher_id', currentTeacherId); 
           if (circlesResponse.isEmpty) return []; // التحقق من وجود حلقات
           
@@ -119,12 +168,14 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
           final Map<String, dynamic> dataMap = Map<String, dynamic>.from(data as Map); 
           final Map<String, dynamic> studentData = dataMap['students'] != null ? Map<String, dynamic>.from(dataMap['students'] as Map) : {}; 
           final sId = dataMap['id'].toString();
+          final cId = dataMap['circle_id']?.toString();
           final isSup = dataMap['is_supervisor'] == true || _storage.read('is_supervisor_$sId') == true;
           final combinedData = {
             ...dataMap,
             ...studentData,
             'status': 'accepted',
             'is_supervisor': isSup,
+            'circle_id': cId,
           }; 
           return StudentModel.fromJson(combinedData); 
         }).toList(); 
@@ -150,8 +201,9 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
                 .from('circles')
                 .update({'supervisor_id': student.id})
                 .eq('id', circleId);
+            _storage.remove('pending_supervisor_$circleId');
           } catch (e) {
-            // debugPrint('Note: circles supervisor_id update: $e');
+            _storage.write('pending_supervisor_$circleId', student.id);
           }
           _storage.write('circle_supervisor_$circleId', student.id);
         }
@@ -166,6 +218,11 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
           }
           return s;
         }).toList();
+
+        final currentTeacherId = Supabase.instance.client.auth.currentUser?.id;
+        if (currentTeacherId != null) {
+          _cacheService.removeData('teacher_students_monitoring_$currentTeacherId');
+        }
 
         Get.snackbar(
           'نجاح',
@@ -182,8 +239,9 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
                 .from('circles')
                 .update({'supervisor_id': null})
                 .eq('id', circleId);
+            _storage.remove('pending_supervisor_$circleId');
           } catch (e) {
-            // debugPrint('Note: circles clear supervisor_id: $e');
+            _storage.write('pending_supervisor_$circleId', '');
           }
           _storage.remove('circle_supervisor_$circleId');
         }
@@ -196,6 +254,11 @@ class StudentMonitoringController extends GetxController { // تعريف الف�
           }
           return s;
         }).toList();
+
+        final currentTeacherId = Supabase.instance.client.auth.currentUser?.id;
+        if (currentTeacherId != null) {
+          _cacheService.removeData('teacher_students_monitoring_$currentTeacherId');
+        }
 
         Get.snackbar(
           'تنبيه',

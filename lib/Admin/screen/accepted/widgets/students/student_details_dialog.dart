@@ -3,6 +3,7 @@ import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة ال
 import '../../../../models/admin_models.dart'; // استيراد نماذج البيانات الخاصة بالأدمن
 import '../../../../controller/accepted/accepted_students_controller.dart'; // استيراد متحكم الطلاب المقبولين
 import '../../../../../core/controllers/global_batch_controller.dart'; // استيراد متحكم الدفعات
+import '../../../../../core/utils/clipboard_utils.dart'; // استيراد دالة النسخ إلى الحافظة
 import '../detail_row_widget.dart'; // استيراد ودجت عرض تفاصيل الصف
 import 'student_transfer_dialog.dart'; // استيراد نافذة نقل/توزيع الطالب
 
@@ -84,7 +85,7 @@ class StudentDetailsDialog {
                 DetailRowWidget(
                   icon: Icons.grade, // أيقونة الدرجة أو المستوى
                   label: 'level'.tr, // نص "المستوى" مترجم
-                  value: student.level, // قيمة المستوى
+                  value: student.level.tr, // قيمة المستوى
                 ),
                 Obx(() {
                   final batchController = Get.isRegistered<GlobalBatchController>() 
@@ -166,6 +167,12 @@ class StudentDetailsDialog {
         ),
         actions: [
           // أزرار العمليات أسفل الحوار
+          // زر نسخ كامل بيانات الطالب
+          TextButton.icon(
+            onPressed: () => copyToClipboard(_buildAllDataText(student)),
+            icon: const Icon(Icons.copy_all_rounded, size: 18),
+            label: Text('copy_all_data'.tr),
+          ),
           // زر إغلاق النافذة
           TextButton(onPressed: () => Get.back(), child: Text('close'.tr)),
           // زر التوزيع أو النقل بناءً على حالة الطالب
@@ -191,5 +198,29 @@ class StudentDetailsDialog {
         ],
       ),
     );
+  }
+
+  // بناء نص يحتوي على كامل بيانات الطالب لنسخه دفعة واحدة
+  static String _buildAllDataText(StudentModel s) {
+    final String gender = s.gender == Gender.male ? 'male'.tr : 'female'.tr;
+    final String status = s.isDistributed
+        ? '${'distributed'.tr}${s.circleName != null ? ' - ${s.circleName}' : ''}'
+        : 'not_distributed'.tr;
+
+    final List<String> lines = [
+      '${'name'.tr}: ${s.name}',
+      '${'email'.tr}: ${s.email}',
+      '${'phone'.tr}: ${s.phone}',
+      '${'academic_number'.tr}: ${s.academicNumber}',
+      '${'gender'.tr}: $gender',
+      if (s.age != null) '${'age'.tr}: ${s.age}',
+      if (s.academicQualification != null && s.academicQualification!.isNotEmpty)
+        '${'academic_qualification'.tr}: ${s.academicQualification}',
+      '${'level'.tr}: ${s.level.tr}',
+      if (s.batchNumber != null) '${'batch_number'.tr}: ${s.batchNumber}',
+      '${'joining_date'.tr}: ${s.date}',
+      '${'status'.tr}: $status',
+    ];
+    return lines.join('\n');
   }
 }

@@ -3,6 +3,7 @@ import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة ال
 import 'package:supabase_flutter/supabase_flutter.dart'; // استيراد حزمة Supabase للتعامل مع قاعدة البيانات السحابية
 import '../../Auth/routing/auth_route.dart'; // استيراد مسارات المصادقة للتوجيه بعد تسجيل الخروج
 import '../services/local_db_service.dart'; // استيراد خدمة قاعدة البيانات المحلية للحفظ المؤقت (Caching)
+import '../utils/quran_categories.dart'; // استيراد ثوابت وتوحيد فئات الحفظ
 
 class ProfileController extends GetxController {
   // إنشاء نسخة من عميل Supabase للقيام بالاستعلامات
@@ -130,7 +131,7 @@ class ProfileController extends GetxController {
             .maybeSingle();
         if (studentData != null) {
           additionalInfo.value = studentData;
-          hifzLevel.value = studentData['hifz_level'] ?? '';
+          hifzLevel.value = normalizeCategory(studentData['hifz_level']?.toString() ?? '');
         }
 
         // جلب بيانات الحلقة والمعلم المرتبط بهذا الطالب

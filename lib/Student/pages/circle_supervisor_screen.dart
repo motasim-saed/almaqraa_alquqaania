@@ -236,6 +236,8 @@ class CircleSupervisorScreen extends StatelessWidget {
                   children: [
                     Text(
                       student.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Cairo',
                         fontWeight: FontWeight.bold,
@@ -253,7 +255,7 @@ class CircleSupervisorScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              student.level,
+                              student.level.tr,
                               style: const TextStyle(
                                 color: Colors.blue,
                                 fontSize: 11,
@@ -265,12 +267,16 @@ class CircleSupervisorScreen extends StatelessWidget {
                           const SizedBox(width: 6),
                         ],
                         if (student.email.isNotEmpty)
-                          Text(
-                            student.email,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                              fontFamily: 'Cairo',
+                          Expanded(
+                            child: Text(
+                              student.email,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontFamily: 'Cairo',
+                              ),
                             ),
                           ),
                       ],

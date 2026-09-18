@@ -58,6 +58,8 @@ class StudentProgressController extends GetxController {
   var totalExcused = 0.obs;
   var totalHoliday = 0.obs;
 
+  final ScrollController monthScrollController = ScrollController();
+
   var isLoading = false.obs;
   var isSaving = false.obs;
   var showFilters = false.obs;
@@ -80,9 +82,44 @@ class StudentProgressController extends GetxController {
   }
 
   @override
+  void onReady() {
+    super.onReady();
+    scrollToSelectedMonth();
+  }
+
+  @override
   void onClose() {
     _gradesSubscription?.unsubscribe();
+    monthScrollController.dispose();
     super.onClose();
+  }
+
+  /// توسيط الشهر المختار في شريط الشهور الأفقي
+  void scrollToSelectedMonth({int retry = 0, bool animate = true}) {
+    Future.delayed(Duration(milliseconds: retry == 0 ? 150 : 250), () {
+      if (monthScrollController.hasClients) {
+        final index = selectedMonth.value - 1; // 0 ليناير، 8 لسبتمبر
+        const double itemWidth = 105.0; // 95 عرض البطاقة + 10 الهامش
+        final double screenWidth = Get.width;
+        double offset = (index * itemWidth) - (screenWidth / 2) + (itemWidth / 2);
+        if (offset < 0) offset = 0;
+        if (offset > monthScrollController.position.maxScrollExtent) {
+          offset = monthScrollController.position.maxScrollExtent;
+        }
+
+        if (animate) {
+          monthScrollController.animateTo(
+            offset,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+          );
+        } else {
+          monthScrollController.jumpTo(offset);
+        }
+      } else if (retry < 5) {
+        scrollToSelectedMonth(retry: retry + 1, animate: animate);
+      }
+    });
   }
 
   void _listenToGradesUpdates() {
@@ -130,12 +167,19 @@ class StudentProgressController extends GetxController {
         .subscribe();
   }
 
-  void toggleFilters() => showFilters.value = !showFilters.value;
+  void toggleFilters() {
+    showFilters.value = !showFilters.value;
+    if (showFilters.value) {
+      scrollToSelectedMonth(animate: true);
+    }
+  }
+
   void toggleStats() => showStats.value = !showStats.value;
 
   void changeSelectedMonth(int month) {
     selectedMonth.value = month;
     _updateDisplayRecords();
+    scrollToSelectedMonth(animate: true);
   }
 
   Future<void> _loadCachedData() async {
@@ -164,6 +208,7 @@ class StudentProgressController extends GetxController {
         'final_exams',
         where: 'student_id = ?',
         whereArgs: [studentId],
+        orderBy: 'year DESC',
       );
       if (finalExamData.isNotEmpty) {
         finalExamRecord.value = FinalExamRecord.fromJson(finalExamData.first);
@@ -242,22 +287,25 @@ class StudentProgressController extends GetxController {
 
   Future<void> fetchFinalExamRecord() async {
     try {
-      final response = await _supabase
+      // جلب أحدث سجل للطالب (الأحدث سنة) لضمان ظهور النتيجة النهائية الصادرة
+      // مع تحديد (limit=1) بدلاً من maybeSingle لتجنب الخطأ عند تعدد السجلات عبر السنوات/الحلقات
+      final List data = await _supabase
           .from('final_exams')
           .select('*, profiles(full_name)')
           .eq('student_id', studentId)
-          .maybeSingle();
+          .order('year', ascending: false)
+          .limit(1);
 
-      if (response != null) {
-        final record = FinalExamRecord.fromJson(response);
+      if (data.isNotEmpty) {
+        final record = FinalExamRecord.fromJson(data.first);
         finalExamRecord.value = record;
+        // ملاحظة: لا نضيف student_name لأن جدول final_exams المحلي لا يحتوي هذا العمود
         await _localDb.insertOrUpdate('final_exams', {
           'student_id': record.studentId,
           'hifz_score': record.hifzScore,
           'tajweed_score': record.tajweedScore,
           'tilawah_score': record.tilawahScore,
           'year': DateTime.now().year,
-          'student_name': record.studentName,
         });
       }
     } catch (e) {}

@@ -3,6 +3,7 @@ import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة ال
 import '../../../../models/admin_models.dart'; // استيراد نماذج البيانات الخاصة بالأدمن
 import '../../../../controller/accepted/accepted_teachers_controller.dart'; // استيراد متحكم المعلمين المقبولين
 import '../../../../../core/controllers/global_batch_controller.dart'; // استيراد متحكم الدفعات
+import '../../../../../core/utils/clipboard_utils.dart'; // استيراد دالة النسخ إلى الحافظة
 import '../detail_row_widget.dart'; // استيراد ودجت عرض تفاصيل الصف
 
 // حوار تفاصيل المعلم - TeacherDetailsDialog
@@ -225,6 +226,22 @@ class TeacherDetailsDialog {
         ),
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
+          // زر نسخ كامل بيانات المعلم
+          TextButton.icon(
+            onPressed: () => copyToClipboard(_buildAllDataText(teacher)),
+            icon: Icon(
+              Icons.copy_all_rounded,
+              size: 18,
+              color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+            ),
+            label: Text(
+              'copy_all_data'.tr,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
           // زر إغلاق
           TextButton(
             onPressed: () => Get.back(), 
@@ -294,15 +311,53 @@ class TeacherDetailsDialog {
       cancelTextColor: isDarkMode ? Colors.white60 : Colors.black54,
       buttonColor: isDarkMode ? Colors.indigoAccent : Theme.of(context).primaryColor,
       onConfirm: () {
+        if (needsSponsorship.value) {
+          final parsedAmount = double.tryParse(amountController.text.trim());
+          if (parsedAmount == null || parsedAmount <= 0) {
+            Get.snackbar(
+              'error'.tr,
+              'enter_valid_sponsorship_amount'.tr,
+              backgroundColor: Colors.redAccent,
+              colorText: Colors.white,
+            );
+            return;
+          }
+        }
         Get.back();
         Get.back();
         controller.updateSponsorship(
           teacher,
           needsSponsorship: needsSponsorship.value,
-          amount: double.tryParse(amountController.text),
-          package: packageController.text.isNotEmpty ? packageController.text : null,
+          amount: needsSponsorship.value
+              ? double.tryParse(amountController.text.trim())
+              : null,
+          package: needsSponsorship.value && packageController.text.trim().isNotEmpty
+              ? packageController.text.trim()
+              : null,
         );
       },
     );
+  }
+
+  // بناء نص يحتوي على كامل بيانات المعلم لنسخه دفعة واحدة
+  static String _buildAllDataText(TeacherModel t) {
+    final String gender = t.gender == Gender.male ? 'male'.tr : 'female'.tr;
+    final List<String> lines = [
+      '${'name'.tr}: ${t.name}',
+      '${'email'.tr}: ${t.email}',
+      '${'phone'.tr}: ${t.phone}',
+      '${'academic_number'.tr}: ${t.academicNumber}',
+      '${'gender'.tr}: $gender',
+      if (t.age != null) '${'age'.tr}: ${t.age}',
+      if (t.academicQualification != null && t.academicQualification!.isNotEmpty)
+        '${'academic_qualification'.tr}: ${t.academicQualification}',
+      '${'specialization'.tr}: ${t.specialization}',
+      if (t.batchNumber != null) '${'batch_number'.tr}: ${t.batchNumber}',
+      '${'joining_date'.tr}: ${t.date}',
+      '${'sponsorship_status'.tr}: ${t.canCoverBalance ? 'not_needs_sponsorship'.tr : 'needs_sponsorship'.tr}',
+      if (t.sponsorshipAmount != null) '${'sponsorship_amount'.tr}: ${t.sponsorshipAmount}',
+      if (t.packageType != null && t.packageType!.isNotEmpty) '${'package_type'.tr}: ${t.packageType}',
+    ];
+    return lines.join('\n');
   }
 }

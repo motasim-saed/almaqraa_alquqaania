@@ -167,7 +167,7 @@ class StudentApplicantsScreen extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      item.level,
+                                      item.level.tr,
                                       style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 11,

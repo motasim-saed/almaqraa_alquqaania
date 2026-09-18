@@ -42,19 +42,25 @@ class MonthlyFollowUpController extends GetxController with ReportsModule {
   }
 
   /// توسيط الشهر المختار في شريط الشهور
-  void scrollToSelectedMonth() {
-    if (monthScrollController.hasClients) {
-      // حساب الإزاحة المطلوبة لتوسيط العنصر (عرض العنصر 110 + الهامش 8)
-      double offset = (selectedMonthIndex.value * 118.0) - (Get.width / 2) + 59;
-      if (offset < 0) offset = 0;
-      if (offset > monthScrollController.position.maxScrollExtent) offset = monthScrollController.position.maxScrollExtent;
-      
-      monthScrollController.animateTo(
-        offset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
+  void scrollToSelectedMonth({int retry = 0}) {
+    Future.delayed(Duration(milliseconds: retry == 0 ? 100 : 200), () {
+      if (monthScrollController.hasClients) {
+        // حساب الإزاحة المطلوبة لتوسيط العنصر (عرض العنصر 110 + الهامش 8)
+        double offset = (selectedMonthIndex.value * 118.0) - (Get.width / 2) + 59;
+        if (offset < 0) offset = 0;
+        if (offset > monthScrollController.position.maxScrollExtent) {
+          offset = monthScrollController.position.maxScrollExtent;
+        }
+        
+        monthScrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeInOut,
+        );
+      } else if (retry < 5) {
+        scrollToSelectedMonth(retry: retry + 1);
+      }
+    });
   }
 
   /// دالة لضبط فهرس الشهر ليتوافق مع التاريخ الحالي لجهاز المستخدم

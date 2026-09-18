@@ -18,6 +18,8 @@ class AcceptedStudentsController extends GetxController {
 
   var maleDistributionFilter = 'all'.obs;
   var femaleDistributionFilter = 'all'.obs;
+  var maleCategoryFilter = 'all'.obs;
+  var femaleCategoryFilter = 'all'.obs;
   var searchQuery = ''.obs;
 
   @override
@@ -88,6 +90,9 @@ class AcceptedStudentsController extends GetxController {
     final distributionFilter = gender == Gender.male
         ? maleDistributionFilter.value
         : femaleDistributionFilter.value;
+    final categoryFilter = gender == Gender.male
+        ? maleCategoryFilter.value
+        : femaleCategoryFilter.value;
 
     int? globalBatch;
     if (Get.isRegistered<GlobalBatchController>()) {
@@ -100,6 +105,8 @@ class AcceptedStudentsController extends GetxController {
           distributionFilter == 'all' ||
           (distributionFilter == 'distributed' && s.isDistributed) ||
           (distributionFilter == 'not_distributed' && !s.isDistributed);
+      bool categoryMatch =
+          categoryFilter == 'all' || s.level == categoryFilter;
       bool searchMatch =
           searchQuery.value.isEmpty ||
           s.name.toLowerCase().contains(searchQuery.value.toLowerCase()) ||
@@ -108,7 +115,11 @@ class AcceptedStudentsController extends GetxController {
           );
       bool batchMatch = globalBatch == null || s.batchNumber == globalBatch;
 
-      return genderMatch && distributionMatch && searchMatch && batchMatch;
+      return genderMatch &&
+          distributionMatch &&
+          categoryMatch &&
+          searchMatch &&
+          batchMatch;
     }).toList();
   }
 

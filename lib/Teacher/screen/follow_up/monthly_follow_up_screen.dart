@@ -110,6 +110,10 @@ class MonthlyFollowUpScreen extends StatelessWidget {
 
   /// بناء شريط اختيار الشهر القابل للتمرير بشكل أفقي
   Widget _buildMonthSelector(MonthlyFollowUpController controller) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.scrollToSelectedMonth();
+    });
+
     return Container(
       height: 60, // تحديد ارتفاع شريط الشهور
       margin: const EdgeInsets.symmetric(vertical: 12), // إضافة هوامش عمودية

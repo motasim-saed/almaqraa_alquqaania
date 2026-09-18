@@ -249,6 +249,7 @@ class GradesTableWidget extends StatelessWidget {
             title: '${'year_colon'.tr} ${p.year}',
             description: p.goalDescription,
             color: Colors.indigo,
+            isAnnual: true,
           ),
         ),
         const SizedBox(height: 24),
@@ -266,6 +267,7 @@ class GradesTableWidget extends StatelessWidget {
             title: '${p.month}/${p.year}',
             description: p.goalDescription,
             color: Colors.teal,
+            isAnnual: false,
           ),
         ),
       ],
@@ -276,6 +278,7 @@ class GradesTableWidget extends StatelessWidget {
     required String title,
     required String description,
     required Color color,
+    bool isAnnual = false,
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -305,6 +308,7 @@ class GradesTableWidget extends StatelessWidget {
               description: description,
               isCompact: true,
               color: color,
+              isAnnual: isAnnual,
             ),
           ),
         ],

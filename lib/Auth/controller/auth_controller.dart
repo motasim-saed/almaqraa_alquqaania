@@ -140,6 +140,7 @@ class AuthController extends GetxController {
       if (response.user == null) throw 'login_failed'.tr;
 
       String role = 'student';
+      String? activationCode; // الرمز الفريد المستخدم عند التفعيل لأول مرة
       // 1. البحث في جدول المدراء
       final adminData = await Supabase.instance.client
           .from('admins')
@@ -151,14 +152,16 @@ class AuthController extends GetxController {
         role = 'admin';
       } else {
         // 2. البحث في جدول البروفايلات (للمنسقين والطلاب والمعلمين)
+        // نسترجع الدور والرمز الفريد في نفس الاستعلام لتجنب أي طلب إضافي (أسرع)
         final profile = await Supabase.instance.client
             .from('profiles')
-            .select('role')
+            .select('role, private_code')
             .eq('id', response.user!.id)
             .maybeSingle();
-            
+
         if (profile != null) {
           role = profile['role']?.toString() ?? 'student';
+          activationCode = profile['private_code']?.toString() ;
         } else {
           // إذا لم يوجد في أي جدول، نقوم بتسجيل الخروج وإظهار رسالة خطأ
           await Supabase.instance.client.auth.signOut();
@@ -169,6 +172,42 @@ class AuthController extends GetxController {
       if (!_isPlatformAllowed(role)) {
         await Supabase.instance.client.auth.signOut();
         isLoading.value = false;
+        return;
+      }
+
+      // 🎯 كشف الدخول لأول مرة باستخدام الرمز الفريد:
+      // إذا كانت كلمة المرور المدخلة مطابقة للرمز الفريد فهذا يعني أن المستخدم
+      // لم ينشئ كلمة مرور خاصة به بعد، فنوجهه مباشرة لإنشائها ثم يدخل للتطبيق.
+      final bool isFirstTimeLogin =
+          activationCode != null &&
+          activationCode.isNotEmpty &&
+          password == activationCode;
+
+      if (isFirstTimeLogin) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_role', role.toLowerCase());
+        await prefs.setBool('isSetupComplete', false);
+
+        // مسح الحقول الحساسة قبل الانتقال
+        passwordController.clear();
+        resetPasswordController.clear();
+        confirmPasswordController.clear();
+
+        // إشعار سريع ثم الانتقال الفوري لشاشة إنشاء كلمة المرور (بدون تأخير)
+        Get.snackbar(
+          'first_time_activation'.tr,
+          'first_time_set_password_prompt'.tr,
+          backgroundColor: Colors.blue,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+          margin: const EdgeInsets.all(16),
+        );
+
+        Get.offNamed(
+          AuthRoutes.resetPassword,
+          arguments: {'email': resolvedEmail, 'role': role.toLowerCase()},
+        );
         return;
       }
 
@@ -395,8 +434,7 @@ class AuthController extends GetxController {
       }
 
       final dbCode =
-          response['private_code']?.toString() ??
-          response['special_code']?.toString();
+          response['private_code']?.toString() ;
       if (dbCode != code) {
         _showResultDialog('invalid_code'.tr, false);
         return;
@@ -449,6 +487,19 @@ class AuthController extends GetxController {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isSetupComplete', true);
+
+      // الدور يُمرَّر عند القدوم من شاشة تسجيل الدخول الأولى فقط
+      final args = Get.arguments;
+      final String? resolvedRole = (args is Map && args['role'] != null)
+          ? args['role'].toString().toLowerCase()
+          : null;
+
+      // حفظ بيانات الاعتماد الجديدة لدعم الدخول السريع/بدون إنترنت
+      final email = Supabase.instance.client.auth.currentUser?.email;
+      if (email != null && resolvedRole != null && resolvedRole.isNotEmpty) {
+        await _biometricService.saveCredentials(email, password, resolvedRole);
+      }
+
       _showResultDialog('password_updated_success'.tr, true);
 
       // تفريغ الحقول للأمان
@@ -456,7 +507,15 @@ class AuthController extends GetxController {
       confirmPasswordController.clear();
       passwordController.clear(); // مسح حقل كلمة السر الخاص بتسجيل الدخول
 
-      Get.offAllNamed(AuthRoutes.login);
+      // إذا كنا في سياق التفعيل الأول من شاشة الدخول ندخل مباشرة إلى التطبيق
+      if (resolvedRole != null && resolvedRole.isNotEmpty) {
+        Future.delayed(
+          const Duration(seconds: 1),
+          () => _redirectUser(resolvedRole),
+        );
+      } else {
+        Get.offAllNamed(AuthRoutes.login);
+      }
     } on AuthException catch (e) {
       if (e.code == 'same_password' || e.message.contains('different')) {
         _showResultDialog('كلمة المرور الجديدة مطابقة للكود الحالي. يرجى اختيار كلمة مرور مختلفة تماماً عن كود التفعيل.', false);

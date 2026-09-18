@@ -119,7 +119,9 @@ class StudentGradesScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // 3. عرض درجة الاختبار النهائي (تقييم السنة) من قبل المختبر
-              if (controller.finalExamRecord.value != null)
+              // تظهر البطاقة فور صدور النتيجة: عند وجود سجل بدرجات فعلية (المجموع > 0)
+              if ((controller.finalExamRecord.value)?.totalScore != null &&
+                  controller.finalExamRecord.value!.totalScore > 0)
                 _buildFinalYearGrade(context, controller.finalExamRecord.value!)
               else
                 _buildFinalExamPlaceholder(context),

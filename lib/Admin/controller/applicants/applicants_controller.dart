@@ -49,7 +49,7 @@ class ApplicantsController extends GetxController {
       studentApplicants.assignAll(students);
       _saveToCache(); // حفظ البيانات الجديدة في الكاش
     } catch (e) {
-      print("Error fetching applicants: $e");
+      // print("Error fetching applicants: $e");
     } finally {
       isLoading.value = false;
     }

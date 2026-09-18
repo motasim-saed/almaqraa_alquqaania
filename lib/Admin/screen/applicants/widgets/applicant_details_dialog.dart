@@ -4,6 +4,7 @@ import 'package:get/get.dart'; // استيراد مكتبة GetX لإدارة ا
 import 'package:http/http.dart' as http; // استيراد مكتبة الطلبات البرمجية HTTP
 import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة لفتح الروابط الخارجية
 import '../../../../core/utils/app_constants.dart'; // استيراد الثوابت الخاصة بالتطبيق
+import '../../../../core/utils/clipboard_utils.dart'; // استيراد دالة النسخ إلى الحافظة
 import '../../../models/admin_models.dart'; // استيراد نماذج البيانات الخاصة بالأدمن
 import '../../../controller/applicants/applicants_controller.dart'; // استيراد متحكم المتقدمين
 
@@ -50,6 +51,12 @@ class ApplicantDetailsDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
+                    onPressed: () => copyToClipboard(_buildAllDataText()), // نسخ كامل بيانات المتقدم
+                    icon: const Icon(Icons.copy_all_rounded), // أيقونة نسخ كل البيانات
+                    tooltip: 'copy_all_data'.tr,
+                    color: Colors.indigo,
+                  ),
+                  IconButton(
                     onPressed: () => Navigator.pop(context), // إغلاق النافذة عند الضغط على الزر
                     icon: const Icon(Icons.close), // أيقونة الإغلاق
                   ),
@@ -72,7 +79,7 @@ class ApplicantDetailsDialog extends StatelessWidget {
               ),
               _buildInfoRow(
                 isTeacher ? 'specialization'.tr : 'level'.tr, // عرض التخصص للمعلم أو المستوى للطالب
-                isTeacher ? applicant.specialization : applicant.level,
+                isTeacher ? applicant.specialization : applicant.level.tr, // عرض التخصص للمعلم أو المستوى للطالب
               ),
               _buildInfoRow('academic_number'.tr, applicant.academicNumber), // عرض الرقم الأكاديمي
               _buildInfoRow(
@@ -436,8 +443,41 @@ class ApplicantDetailsDialog extends StatelessWidget {
                   )
                 : Text(value, style: const TextStyle(fontSize: 16)),
           ),
+          // زر نسخ صغير لقيمة الحقل
+          if (value.trim().isNotEmpty && value.trim() != '-')
+            InkWell(
+              onTap: () => copyToClipboard(value, label: label),
+              borderRadius: BorderRadius.circular(6),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.copy_rounded, size: 15, color: Colors.indigo),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  // بناء نص يحتوي على كامل بيانات المتقدم لنسخه دفعة واحدة
+  String _buildAllDataText() {
+    final String gender = applicant.gender == Gender.male ? 'male'.tr : 'female'.tr;
+    final List<String> lines = [
+      '${'name'.tr}: ${applicant.name}',
+      '${'email'.tr}: ${applicant.email}',
+      '${'phone'.tr}: ${applicant.phone}',
+      if (applicant.age != null) '${'age'.tr}: ${applicant.age}',
+      if (applicant.academicQualification != null &&
+          applicant.academicQualification.toString().isNotEmpty)
+        '${'academic_qualification'.tr}: ${applicant.academicQualification}',
+      if (applicant.batchNumber != null) '${'batch_number'.tr}: ${applicant.batchNumber}',
+      '${isTeacher ? 'specialization'.tr : 'level'.tr}: ${isTeacher ? applicant.specialization : applicant.level.tr}',
+      '${'academic_number'.tr}: ${applicant.academicNumber}',
+      '${'gender'.tr}: $gender',
+      if (isTeacher)
+        '${'sponsorship_status'.tr}: ${!applicant.canCoverBalance ? 'needs_sponsorship'.tr : 'not_needs_sponsorship'.tr}',
+      if (!isTeacher)
+        '${'distribution_status'.tr}: ${applicant.isDistributed ? 'distributed'.tr : 'not_distributed'.tr}',
+    ];
+    return lines.join('\n');
   }
 }
