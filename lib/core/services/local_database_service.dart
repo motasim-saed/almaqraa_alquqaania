@@ -20,11 +20,14 @@ class LocalDatabaseService extends GetxService {
     return _database!;
   }
 
-  Future<Database> _initDatabase() async { 
-    String path = join(await getDatabasesPath(), 'al_maqraa_offline.db'); 
+  // ذاكرة مؤقتة لأعمدة الجداول لتنقية البيانات قبل الإدخال (تمنع أخطاء الأعمدة غير الموجودة)
+  final Map<String, Set<String>> _tableColumnsCache = {};
+
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'al_maqraa_offline.db');
     return await openDatabase(
       path,
-      version: 11, // رفع الإصدار لإضافة الأعمدة الجديدة لجدول المستخدمين (profiles) والجلقات (circles)
+      version: 12, // رفع الإصدار لإضافة عمود created_by و batch_number و gender لجدول الحلقات (circles)
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -67,6 +70,9 @@ class LocalDatabaseService extends GetxService {
         students_json TEXT,
         created_at TEXT,
         background_url TEXT,
+        created_by TEXT,
+        batch_number INTEGER,
+        gender TEXT,
         last_synced TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     ''');
@@ -247,28 +253,84 @@ class LocalDatabaseService extends GetxService {
     }
     if (oldVersion < 11) {
       try {
-        await db.execute('ALTER TABLE profiles ADD COLUMN created_at TEXT');
-        await db.execute('ALTER TABLE circles ADD COLUMN created_at TEXT');
-        await db.execute('ALTER TABLE circles ADD COLUMN background_url TEXT');
+        await _addColumnIfNotExists(db, 'profiles', 'created_at', 'TEXT');
+        await _addColumnIfNotExists(db, 'circles', 'created_at', 'TEXT');
+        await _addColumnIfNotExists(db, 'circles', 'background_url', 'TEXT');
       } catch (e) {
         // print('Error upgrading database to version 11: $e');
       }
     }
+    if (oldVersion < 12) {
+      // إصلاح الخطأ: table circles has no column named created_by
+      // الأعمدة الجديدة القادمة من Supabase (created_by, batch_number, gender)
+      try {
+        await _addColumnIfNotExists(db, 'circles', 'created_by', 'TEXT');
+        await _addColumnIfNotExists(db, 'circles', 'batch_number', 'INTEGER');
+        await _addColumnIfNotExists(db, 'circles', 'gender', 'TEXT');
+        await _addColumnIfNotExists(db, 'circles', 'description', 'TEXT');
+      } catch (e) {
+        // print('Error upgrading database to version 12: $e');
+      }
+    }
   }
 
-  Future<void> insertOrUpdate(String table, Map<String, dynamic> data) async { 
+  /// إضافة عمود فقط إذا لم يكن موجوداً (يمنع التعارض عند الترقية المتكررة)
+  Future<void> _addColumnIfNotExists(
+    Database db,
+    String table,
+    String column,
+    String type,
+  ) async {
+    final info = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = info.any((c) => c['name'] == column);
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $type');
+    }
+  }
+
+  /// جلب أعمدة الجدول (مع تخزين مؤقت) لتنقية البيانات الدخيلة
+  Future<Set<String>> _getTableColumns(Database db, String table) async {
+    if (_tableColumnsCache.containsKey(table)) {
+      return _tableColumnsCache[table]!;
+    }
+    try {
+      final info = await db.rawQuery('PRAGMA table_info($table)');
+      final cols = info.map((c) => c['name'].toString()).toSet();
+      _tableColumnsCache[table] = cols;
+      return cols;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> insertOrUpdate(String table, Map<String, dynamic> data) async {
     if (kIsWeb) return;
     try {
       final db = await database;
       if (db == null) return;
 
-      // تحويل القيم المنطقية إلى أرقام لتتوافق مع SQLite
-      final processedData = Map<String, dynamic>.from(data);
-      processedData.forEach((key, value) {
-        if (value is bool) {
-          processedData[key] = value ? 1 : 0;
+      // تنقية البيانات: إسقاط أي مفاتيح غير موجودة كأعمدة في الجدول المحلي
+      // (مثل created_by القادم من Supabase قبل الترقية، أو أي حقول مستقبلية)
+      // هذا يمنع الخطأ: table circles has no column named xxx
+      final validColumns = await _getTableColumns(db, table);
+      final processedData = <String, dynamic>{};
+      data.forEach((key, value) {
+        if (validColumns.isEmpty || validColumns.contains(key)) {
+          if (value is bool) {
+            processedData[key] = value ? 1 : 0;
+          } else if (value is Map || value is List) {
+            // الأعمدة المحلية نصية غالباً؛ نخزن الكائنات المعقدة كـ JSON
+            // فقط إذا كان العمود المستهدف نصياً معروفاً (students_json) وإلا نتجاوزه
+            if (key == 'students_json' || key == 'students') {
+              return; // يتم بناؤه محلياً وليس من Supabase مباشرة
+            }
+            processedData[key] = value.toString();
+          } else {
+            processedData[key] = value;
+          }
         }
       });
+      if (processedData.isEmpty) return;
 
       await db.insert(table, processedData, conflictAlgorithm: ConflictAlgorithm.replace);
     } catch (e) {

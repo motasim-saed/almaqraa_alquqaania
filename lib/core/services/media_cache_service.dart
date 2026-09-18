@@ -54,18 +54,13 @@ class MediaCacheService extends GetxService {
   _appDocDir; // متغير لتخزين مسار المجلد الرئيسي للتطبيق في الجهاز
 
   /// دالة تهيئة الخدمة عند بدء تشغيل التطبيق
+  /// ملاحظة: لا نطلب أي إذن هنا بشكل إلزامي عند الإقلاع (يمنع تجميد الخيط الرئيسي
+  /// ويمنع تحذير permission_handler: No permissions found in manifest).
+  /// تُطلب الأذونات عند الحاجة فقط عبر [ensureStoragePermission].
   Future<MediaCacheService> init() async {
     if (kIsWeb) return this;
-    
+
     if (Platform.isAndroid) {
-      // إذا كان الجهاز يعمل بنظام أندرويد
-      // طلب تصاريح إدارة وتخزين الملفات
-      if (await Permission.manageExternalStorage.isDenied) {
-        await Permission.manageExternalStorage.request();
-      }
-      if (await Permission.storage.isDenied) {
-        await Permission.storage.request();
-      }
 
       final externalDir =
           await getExternalStorageDirectory(); // محاولة الحصول على مسار التخزين الخارجي
@@ -100,6 +95,57 @@ class MediaCacheService extends GetxService {
       }
     }
     return this; // إرجاع الخدمة بعد اكتمال التهيئة
+  }
+
+  /// طلب إذن التخزين/الوسائط عند الحاجة فقط (وليس عند الإقلاع).
+  /// يختار الأذونات الصحيحة حسب إصدار أندرويد لتجنب تحذير:
+  /// "No permissions found in manifest" الذي يظهر عند طلب
+  /// Permission.storage / manageExternalStorage على Android 13+.
+  Future<bool> ensureStoragePermission() async {
+    if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return true;
+    try {
+      if (Platform.isIOS) {
+        final photos = await Permission.photos.status;
+        if (photos.isDenied) {
+          final res = await Permission.photos.request();
+          return res.isGranted || res.isLimited;
+        }
+        return true;
+      }
+      // أندرويد: نحاول الأذونات الحديثة أولاً (READ_MEDIA_*) ثم نتراجع للقديمة.
+      // permission_handler يرمي/يحذر إذا كان الإذن غير معلن في Manifest، لذا نغلف كل طلب بـ try/catch.
+      final List<Permission> candidates = [
+        Permission.photos,
+        Permission.audio,
+        Permission.videos,
+        Permission.storage,
+      ];
+      bool anyGranted = false;
+      for (final p in candidates) {
+        try {
+          final status = await p.status;
+          if (status.isGranted || status.isLimited) {
+            anyGranted = true;
+            continue;
+          }
+          if (status.isDenied) {
+            final res = await p.request();
+            if (res.isGranted || res.isLimited) anyGranted = true;
+          } else if (status.isPermanentlyDenied) {
+            // لا نفتح الإعدادات تلقائياً؛ نكتفي بالمجلد الخاص بالتطبيق الذي لا يحتاج إذناً
+            continue;
+          } else {
+            anyGranted = true;
+          }
+        } catch (_) {
+          // إذن غير مدعوم على هذا الإصدار (مثل storage على Android 14) -> تجاهله
+          continue;
+        }
+      }
+      return anyGranted;
+    } catch (_) {
+      return true; // لا نمنع التحميل/الحفظ في المجلد الخاص عند فشل الطلب
+    }
   }
 
   /// دالة تحميل الوسائط من رابط وحفظها في المجلد المناسب

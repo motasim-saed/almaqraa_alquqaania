@@ -62,14 +62,16 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
   }
 
   // دالة شاملة لتحديث كافة البيانات (الإشعارات، العدادات، الأدوار)
+  // تحسين أداء الخيط الرئيسي: تشغيل الاستعلامات المستقلة بالتوازي بدل التسلسل
   Future<void> refreshData() async {
     await _fetchUserRole();
-    await fetchNotifications();
-    await updateUnreadCount();
+    await Future.wait([fetchNotifications(), updateUnreadCount()]);
   }
 
   // دالة التهيئة الاحترافية: تجمع بين جلب البيانات الأولي وتفعيل الاستماع اللحظي
+  // تُؤجل لما بعد أول إطار لتجنب Skipped frames عند بدء التشغيل
   Future<void> _initialize() async {
+    await Future.delayed(const Duration(milliseconds: 500));
     await refreshData();
     // تفعيل Realtime لتحديث الواجهة لحظياً أثناء استخدام التطبيق
     _listenToMessageChanges();

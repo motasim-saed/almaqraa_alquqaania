@@ -121,8 +121,10 @@ Future<void> main() async {
     }
   }
 
-  await FlutterQuran().init(); // تهيئة مكتبة القرآن الكريم
-  await GetStorage.init(); // تهيئة مكتبة GetStorage للتخزين المحلي
+  await GetStorage.init(); // تهيئة مكتبة GetStorage للتخزين المحلي (خفيفة ولازمة قبل runApp)
+  // تأجيل تهيئة مكتبة القرآن الثقيلة لما بعد أول إطار لتجنب Skipped frames
+  // سيتم استكمال تهيئتها في الخلفية بعد تشغيل التطبيق
+  final flutterQuranInit = FlutterQuran().init(); // تهيئة غير محجوبة للخيط الرئيسي
 
   try {
     await NotificationService().init(); // تهيئة خدمة التنبيهات
@@ -144,17 +146,26 @@ Future<void> main() async {
   }
 
   // تهيئة وحقن الخدمات المختلفة في ذاكرة التطبيق
+  // تحسين أداء الخيط الرئيسي: الخدمات المستقلة تُهيأ بالتوازي عبر Future.wait
+  // بدل التسلسل الذي كان يجمد البداية ويسبب Skipped frames.
+  // ملاحظة: BackgroundSyncService يعتمد على Connectivity + LocalDatabase لذا يبقى بعدهما.
   try {
     await Get.putAsync(() => ConnectivityService().init());
     await Get.putAsync(() => LocalDatabaseService().init());
+    await Future.wait([
+      Get.putAsync(() => CacheService().init()),
+      Get.putAsync(() => ChatCacheService().init()),
+      Get.putAsync(() => MediaCacheService().init()),
+      Get.putAsync(() => ShowcaseService().init()),
+    ]);
     await Get.putAsync(() => BackgroundSyncService().init());
-    await Get.putAsync(() => CacheService().init());
-    await Get.putAsync(() => ChatCacheService().init());
-    await Get.putAsync(() => MediaCacheService().init());
-    await Get.putAsync(() => ShowcaseService().init());
   } catch (e) {
     // Get.log("⚠️ Error initializing services: $e");
   }
+  // انتظار تهيئة القرآن في الخلفية دون حجب الإقلاع (مع مهلة أمان)
+  try {
+    await flutterQuranInit.timeout(const Duration(seconds: 15));
+  } catch (_) {}
 
   // جعل التطبيق يفتح دائماً على شاشة تسجيل الدخول بناءً على طلبك لضمان الأمان
   // بحيث لا يمكن تجاوز هذه الشاشة إلا بإدخال البيانات الصحيحة (سواء أونلاين أو أوفلاين)

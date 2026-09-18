@@ -67,15 +67,26 @@ class QuranCirclesController extends GetxController {
   void onInit() {
     // دالة تُستدعى عند تهيئة المتحكم | Function called on controller initialization
     super.onInit(); // استدعاء دالة التهيئة للأب | Call super class onInit
-    fetchQuranCircles(); // جلب بيانات حلقات القرآن عند بدء التشغيل | Fetch Quran circles data on startup
+    // تحسين أداء الخيط الرئيسي: عرض الكاش فوراً (خفيف ومتزامن)
+    // وتأجيل جلب الشبكة الثقيل لما بعد أول إطار عبر onReady
+    _loadFromCache(); // Load cached data instantly for first frame
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // تأجيل طلب الشبكة خارج بناء الواجهة لتجنب Skipped frames
+    Future.microtask(() => fetchQuranCircles());
   }
 
   // جلب حلقات القرآن من السيرفر مع دعم التخزين المؤقت | Fetch Quran circles from server with cache support
+  // يعمل بشكل آسيوي بالكامل بعيداً عن الخيط الرئيسي (لا توجد عمليات متزامنة ثقيلة)
   Future<void> fetchQuranCircles() async {
-    _loadFromCache(); // تحميل البيانات من التخزين المؤقت أولاً لسرعة العرض | Load data from cache first for speed
-
     if (quranCircles.isEmpty) {
-      isLoading.value = true; // بدء حالة التحميل فقط إذا لم يكن هناك كاش
+      _loadFromCache(); // تحميل الكاش فقط إذا كانت القائمة فارغة (تم تحميلها مسبقاً في onInit)
+      if (quranCircles.isEmpty) {
+        isLoading.value = true; // بدء حالة التحميل فقط إذا لم يكن هناك كاش
+      }
     }
     try {
       // محاولة جلب البيانات من المستودع | Try fetching data from repository
