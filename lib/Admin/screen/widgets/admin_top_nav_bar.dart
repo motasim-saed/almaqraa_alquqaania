@@ -54,6 +54,7 @@ class AdminTopNavigationBar extends StatelessWidget {
                 _buildNavItem(3, Icons.grid_view_outlined, Icons.grid_view_rounded, 'quran_circles'.tr, controller, isDark),
                 _buildNavItem(8, Icons.fact_check_outlined, Icons.fact_check, 'exam_committee'.tr, controller, isDark),
                 _buildNavItem(6, Icons.analytics_outlined, Icons.analytics, 'reports'.tr, controller, isDark),
+                _buildNavItem(19, Icons.star_rate_outlined, Icons.star_rate, 'ratings_management'.tr, controller, isDark),
                 _buildNavItem(9, Icons.card_membership_outlined, Icons.card_membership, 'certificates'.tr, controller, isDark),
                 _buildDivider(isDark),
                 _buildNavItem(11, Icons.event_available_outlined, Icons.event_available, 'holiday_management'.tr, controller, isDark),

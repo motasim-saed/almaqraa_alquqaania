@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:al_maqraa/Student/controller/student_profile_controller.dart';
+import 'package:al_maqraa/Teacher/controller/monthly_rating_controller.dart';
+import 'package:al_maqraa/Teacher/models/monthly_rating_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../components/form_failed.dart';
 import '../../Teacher/screen/profile/change_password_screen.dart';
 import '../../core/utils/app_cached_image.dart';
@@ -268,6 +271,12 @@ class ProfilesScreen extends StatelessWidget {
                                   : controller.teacherNameController.text,
                             ),
 
+                            // قسم التقييم الشهري من المعلم (يظهر تقييم الطالب ورسالته)
+                            const SizedBox(height: 25),
+                            _buildSectionTitle('my_monthly_rating'.tr),
+                            const SizedBox(height: 15),
+                            _buildMonthlyRatingSection(),
+
                             const SizedBox(height: 40),
                             // زر حفظ التغييرات
                             SizedBox(
@@ -335,6 +344,175 @@ class ProfilesScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  // قسم عرض التقييم الشهري للطالب من معلمه مع الرسالة الموحدة
+  Widget _buildMonthlyRatingSection() {
+    return GetX<MonthlyRatingController>(
+      init: Get.isRegistered<MonthlyRatingController>()
+          ? Get.find<MonthlyRatingController>()
+          : MonthlyRatingController(),
+      initState: (state) {
+        final c = Get.isRegistered<MonthlyRatingController>()
+            ? Get.find<MonthlyRatingController>()
+            : Get.put(MonthlyRatingController(), permanent: true);
+        Future.microtask(() => _loadMyRatings(c));
+      },
+      builder: (ratingCtrl) {
+        final isArabic = Get.locale?.languageCode != 'en';
+        if (ratingCtrl.isLoading.value && ratingCtrl.studentRatings.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        if (ratingCtrl.studentRatings.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.star_border_rounded, color: Colors.grey, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'no_rating_yet'.tr,
+                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        final latest = ratingCtrl.studentRatings.first;
+        final lv = MonthlyRatingLevel.fromKey(latest.rating);
+        return Column(
+          children: [
+            // بطاقة آخر تقييم مع رسالته
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [lv.color.withValues(alpha: 0.15), lv.color.withValues(alpha: 0.05)],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: lv.color.withValues(alpha: 0.4), width: 1.2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: lv.color.withValues(alpha: 0.15), shape: BoxShape.circle),
+                        child: Icon(lv.icon, color: lv.color, size: 26),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isArabic ? lv.titleAr : lv.titleEn,
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: lv.color,
+                              ),
+                            ),
+                            Text(
+                              '${latest.month}/${latest.year}',
+                              style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Row(
+                        children: List.generate(
+                          5,
+                          (i) => Icon(
+                            i < lv.stars ? Icons.star_rounded : Icons.star_border_rounded,
+                            size: 16,
+                            color: lv.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isArabic ? lv.messageAr : lv.messageEn,
+                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, height: 1.7, color: Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // سجل التقييمات السابقة (إن وُجد أكثر من واحد)
+            if (ratingCtrl.studentRatings.length > 1) ...[
+              const SizedBox(height: 12),
+              ...ratingCtrl.studentRatings.skip(1).take(5).map((r) {
+                final l = MonthlyRatingLevel.fromKey(r.rating);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(Get.context!).cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(l.icon, color: l.color, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${r.month}/${r.year}',
+                        style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, color: Colors.grey),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isArabic ? l.titleAr : l.titleEn,
+                          style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, fontSize: 13, color: l.color),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadMyRatings(MonthlyRatingController c) async {
+    try {
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await c.fetchStudentRatings(uid);
+      }
+    } catch (_) {}
   }
 
   // عنوان القسم

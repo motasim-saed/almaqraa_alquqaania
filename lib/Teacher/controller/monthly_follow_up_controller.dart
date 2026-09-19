@@ -4,6 +4,7 @@ import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة ال
 import 'package:get_storage/get_storage.dart'; // استيراد مكتبة GetStorage لعمل كاش محلي للبيانات (أوفلاين)
 import 'package:supabase_flutter/supabase_flutter.dart'; // استيراد حزمة Supabase للتعامل مع قاعدة البيانات السحابية
 import '../models/monthly_record_model.dart'; // استيراد نموذج سجل المتابعة الشهري المتكامل
+import 'monthly_rating_controller.dart'; // متحكم التقييم الشهري لجلب شارات التقييم
 import '../../core/utils/app_constants.dart'; // استيراد الثوابت العامة للتطبيق مثل أسماء الشهور
 import '../models/daily_attendance_record_model.dart'; // استيراد نموذج سجل الحضور اليومي للطالب
 
@@ -146,6 +147,14 @@ class MonthlyFollowUpController extends GetxController with ReportsModule {
 
       // تحديث القائمة التفاعلية بالبيانات الجديدة المجلوبة من السيرفر
       monthData.assignAll(integratedRecords);
+      // جلب آخر التقييمات الشهرية لعرض شاراتها في البطاقات
+      try {
+        final ratingCtrl = Get.isRegistered<MonthlyRatingController>()
+            ? Get.find<MonthlyRatingController>()
+            : Get.put(MonthlyRatingController(), permanent: true);
+        final ids = integratedRecords.map((e) => e.studentId).toList();
+        if (ids.isNotEmpty) ratingCtrl.fetchLatestForStudents(ids);
+      } catch (_) {}
       // تحديث الكاش المحلي بالبيانات الجديدة لضمان توفرها المرة القادمة بدون إنترنت
       _saveToCache(teacherId, year, month);
       

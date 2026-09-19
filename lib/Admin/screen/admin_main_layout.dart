@@ -125,7 +125,8 @@ class AdminMainLayout extends StatelessWidget {
             }),
           ),
 
-          // شريط الأدوات: تحديث، بحث، تأكيد الفلترة، القائمة المنسدلة
+          // شريط الأدوات: تحديث، بحث، فلترة الدفعة
+          // (شاشة التقييمات index 19: بدون زر بحث، لكن فلترة الدفعة ظاهرة في الأعلى مثل بقية الشاشات)
           Row(
             children: [
               // زر التحديث
@@ -133,26 +134,31 @@ class AdminMainLayout extends StatelessWidget {
                 final isRefreshing = controller.isRefreshing.value || homeController.isRefreshing.value;
                 return IconButton(
                   tooltip: 'تحديث البيانات',
-                  icon: isRefreshing 
+                  icon: isRefreshing
                     ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: textColor))
                     : Icon(Icons.refresh, color: textColor),
                   onPressed: isRefreshing ? null : () => controller.refreshCurrentScreen(),
                 );
               }),
-              
-              // زر البحث
-              IconButton(
-                onPressed: () => controller.toggleSearch(),
-                icon: Obx(() => Icon(
-                  controller.isSearching.value ? Icons.close : Icons.search,
-                  color: textColor,
-                )),
-                tooltip: 'search'.tr,
-              ),
+
+              // زر البحث (مخفي في شاشة التقييمات)
+              Obx(() {
+                if (controller.currentIndex == 19) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  onPressed: () => controller.toggleSearch(),
+                  icon: Obx(() => Icon(
+                    controller.isSearching.value ? Icons.close : Icons.search,
+                    color: textColor,
+                  )),
+                  tooltip: 'search'.tr,
+                );
+              }),
 
               const SizedBox(width: 8),
 
-              // مجموعة فلترة الدفعات
+              // مجموعة فلترة الدفعات (ظاهرة في كل الشاشات بما فيها التقييمات)
               _buildBatchFilterGroup(context, textColor),
             ],
           ),

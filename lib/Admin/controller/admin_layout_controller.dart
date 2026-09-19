@@ -29,6 +29,8 @@ import '../screen/settings/admin_manage_users_screen.dart';
 import '../screen/financial_support/admin_financial_support_screen.dart';
 import 'financial_support_controller.dart';
 import 'settings/admin_settings_controller.dart';
+import '../screen/ratings/admin_ratings_screen.dart';
+import 'ratings/admin_ratings_controller.dart';
 
 class AdminLayoutController extends GetxController {
   final _currentIndex = 0.obs;
@@ -47,6 +49,10 @@ class AdminLayoutController extends GetxController {
     // التأكد من وجود متحكم الإعدادات والصيانة
     if (!Get.isRegistered<AdminSettingsController>()) {
       Get.put(AdminSettingsController(), permanent: true);
+    }
+    // متحكم شاشة التقييمات الشهرية
+    if (!Get.isRegistered<AdminRatingsController>()) {
+      Get.put(AdminRatingsController(), permanent: true);
     }
   }
 
@@ -70,6 +76,7 @@ class AdminLayoutController extends GetxController {
     const AdminManageUsersScreen(),
     AdminFinancialSupportScreen(),
     const AdminMaintenanceScreen(), // index 18
+    const AdminRatingsScreen(), // index 19 - إدارة التقييمات الشهرية
   ];
 
   void changeIndex(int index) {
@@ -86,7 +93,11 @@ class AdminLayoutController extends GetxController {
     }
   }
 
+  /// شاشة التقييمات (19) بدون حقل بحث — تُتجاهل أي كتابة بحث فيها
+  bool get isRatingsScreen => _currentIndex.value == 19;
+
   void updateSearchQuery(String query) {
+    if (isRatingsScreen) return;
     final controller = _getActiveController();
     if (controller != null) {
       try {
@@ -131,6 +142,7 @@ class AdminLayoutController extends GetxController {
       case 16: return Get.find<AdminManageUsersController>();
       case 17: return Get.find<FinancialSupportController>();
       case 18: return Get.find<AdminSettingsController>();
+      case 19: return null; // التقييمات: بدون بحث عام
       default: return null;
     }
   }
@@ -150,6 +162,7 @@ class AdminLayoutController extends GetxController {
         case 14: return controller.femaleCount.toString();
         case 6: return controller.quranCircles.length.toString();
         case 11: return controller.holidays.length.toString();
+        case 19: return (controller as AdminRatingsController).filtered.length.toString();
         default: return '';
       }
     } catch (e) { return ''; }
@@ -176,6 +189,7 @@ class AdminLayoutController extends GetxController {
       case 16: return 'manage_management_users'.tr;
       case 17: return 'financial_support_mgmt'.tr;
       case 18: return 'صيانة النظام والتخزين';
+      case 19: return 'ratings_management'.tr;
       default: return '';
     }
   }

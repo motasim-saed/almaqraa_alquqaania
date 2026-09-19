@@ -1,5 +1,8 @@
 import 'package:al_maqraa/Teacher/controller/monthly_follow_up_controller.dart'; // استيراد متحكم المتابعة الشهرية لإدارة الحالة والبيانات
+import 'package:al_maqraa/Teacher/controller/monthly_rating_controller.dart'; // متحكم التقييم الشهري
 import 'package:al_maqraa/Teacher/models/monthly_record_model.dart'; // استيراد نموذج سجل المتابعة الشهري لتمثيل بيانات الطالب
+import 'package:al_maqraa/Teacher/models/monthly_rating_model.dart'; // مستويات التقييم الشهري ورسائله
+import 'package:al_maqraa/Teacher/widget/monthly_rating_dialog.dart'; // حوار إضافة التقييم الشهري
 import 'package:flutter/material.dart'; // استيراد حزمة فلاتر الأساسية لتصميم واجهات المستخدم
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة والمسارات
 
@@ -233,7 +236,79 @@ class MonthlyFollowUpScreen extends StatelessWidget {
                   record.monthlyGrade,
                   context,
                 ), // استدعاء ويدجت عرض وسم الدرجة المئوية
+                // قائمة النقاط الثلاث: إضافة تقييم شهري للطالب
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded),
+                  tooltip: 'options'.tr,
+                  onSelected: (value) {
+                    if (value == 'monthly_rating') {
+                      final ctrl = Get.isRegistered<MonthlyRatingController>()
+                          ? Get.find<MonthlyRatingController>()
+                          : Get.put(MonthlyRatingController(), permanent: true);
+                      final mCtrl = Get.find<MonthlyFollowUpController>();
+                      showMonthlyRatingDialog(
+                        studentId: record.studentId,
+                        studentName: record.studentName,
+                        initialMonth: mCtrl.selectedMonthIndex.value + 1,
+                      );
+                      ctrl; // إبقاء المرجع حياً
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'monthly_rating',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star_rate_rounded, size: 18, color: Colors.amber),
+                          const SizedBox(width: 8),
+                          Text(
+                            'add_monthly_rating'.tr,
+                            style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
+            ),
+            // شارة آخر تقييم شهري للطالب (إن وُجد)
+            GetX<MonthlyRatingController>(
+              init: Get.isRegistered<MonthlyRatingController>()
+                  ? Get.find<MonthlyRatingController>()
+                  : MonthlyRatingController(),
+              builder: (ratingCtrl) {
+                final rating = ratingCtrl.latestFor(record.studentId);
+                if (rating == null) return const SizedBox.shrink();
+                final lv = MonthlyRatingLevel.fromKey(rating.rating);
+                final isArabic = Get.locale?.languageCode != 'en';
+                return Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: lv.color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: lv.color.withValues(alpha: 0.35)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(lv.icon, color: lv.color, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${'monthly_rating'.tr}: ${isArabic ? lv.titleAr : lv.titleEn}',
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: lv.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             const Divider(height: 32), // خط فاصل أفقي مع مساحة عمودية
             // عرض إحصائيات الحضور والغياب والإجازات في صف واحد

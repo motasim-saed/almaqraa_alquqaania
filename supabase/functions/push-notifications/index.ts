@@ -97,10 +97,20 @@ serve(async (req) => {
         body,
       }
 
-      let query = supabase.from("profiles").select("fcm_token").not("fcm_token", "is", null)
+      let query = supabase.from("profiles").select("id, fcm_token").not("fcm_token", "is", null)
 
       if (record.target_role && record.target_role !== "all") {
         query = query.eq("role", String(record.target_role))
+      }
+
+      // إشعار موجّه لأصحاب تقييم محدد: يقتصر على target_user_ids إن وُجدت
+      const rawTargets = (record as Record<string, unknown>).target_user_ids
+      const targetIds = Array.isArray(rawTargets)
+        ? rawTargets.map(String).filter(Boolean)
+        : []
+
+      if (targetIds.length > 0) {
+        query = query.in("id", targetIds)
       }
 
       const { data: profiles, error } = await query

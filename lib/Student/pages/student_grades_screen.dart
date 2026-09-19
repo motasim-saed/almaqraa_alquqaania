@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../core/utils/app_constants.dart';
 import '../controller/student_progress_controller.dart';
 import '../../Teacher/models/monthly_record_model.dart';
+import '../../Teacher/controller/monthly_rating_controller.dart';
+import '../../Teacher/models/monthly_rating_model.dart';
 import '../../Examiner/model/final_exam_model.dart';
 
 class StudentGradesScreen extends StatelessWidget {
@@ -12,6 +14,17 @@ class StudentGradesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // التأكد من وجود المتحكم أو إيجاده
     final controller = Get.find<StudentProgressController>();
+    // متحكم التقييم الشهري — جلب تقييمات الطالب لعرضها في بطاقات الأشهر
+    final ratingCtrl = Get.isRegistered<MonthlyRatingController>()
+        ? Get.find<MonthlyRatingController>()
+        : Get.put(MonthlyRatingController(), permanent: true);
+    if (ratingCtrl.studentRatings.isEmpty && !ratingCtrl.isLoading.value) {
+      Future.microtask(() {
+        if (controller.studentId.isNotEmpty) {
+          ratingCtrl.fetchStudentRatings(controller.studentId);
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -84,6 +97,8 @@ class StudentGradesScreen extends StatelessWidget {
                     officialRecord,
                     stats,
                     isOfficial: true,
+                    monthNumber: monthNumber,
+                    year: DateTime.now().year,
                   );
                 } else {
                   // سجل بناء للبطاقة أثناء عدم وجود تقييم
@@ -102,6 +117,8 @@ class StudentGradesScreen extends StatelessWidget {
                     localRecord,
                     stats,
                     isOfficial: false,
+                    monthNumber: monthNumber,
+                    year: DateTime.now().year,
                   );
                 }
               }), // لا نقوم بالعكس لإظهار الأشهر بالترتيب من 1 لـ 12
@@ -141,6 +158,8 @@ class StudentGradesScreen extends StatelessWidget {
     MonthlyRecord record,
     Map<String, int> stats, {
     bool isOfficial = true,
+    int? monthNumber,
+    int? year,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -283,9 +302,69 @@ class StudentGradesScreen extends StatelessWidget {
                 ),
               ],
             ),
+            // شريط التقييم الشهري من المعلم (المستوى + الرسالة الموحدة)
+            if (monthNumber != null) _buildRatingBanner(monthNumber, year ?? DateTime.now().year),
           ],
         ),
       ),
+    );
+  }
+
+  /// بانر التقييم الشهري داخل بطاقة الشهر — يظهر مستوى الالتزام ورسالته
+  Widget _buildRatingBanner(int month, int year) {
+    return GetX<MonthlyRatingController>(
+      builder: (ratingCtrl) {
+        final r = ratingCtrl.ratingForMonth(month, year);
+        if (r == null) return const SizedBox.shrink();
+        final lv = MonthlyRatingLevel.fromKey(r.rating);
+        final isArabic = Get.locale?.languageCode != 'en';
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: lv.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: lv.color.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(lv.icon, color: lv.color, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${'monthly_rating'.tr}: ${isArabic ? lv.titleAr : lv.titleEn}',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: lv.color,
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Icon(
+                        i < lv.stars ? Icons.star_rounded : Icons.star_border_rounded,
+                        size: 13,
+                        color: lv.color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                isArabic ? lv.messageAr : lv.messageEn,
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

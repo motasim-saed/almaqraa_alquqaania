@@ -167,6 +167,19 @@ final Map<String, String> teacherTranslationsAr = {
   'chat_cleared_success': 'تم مسح سجل المحادثة بنجاح',
   'clear_chat_failed': 'فشل مسح سجل المحادثة',
   'forward_to': 'إعادة توجيه إلى',
+  'add_monthly_rating': 'إضافة تقييم شهري',
+  'monthly_rating': 'التقييم الشهري',
+  'choose_rating_level': 'اختر مستوى التقييم (يعبر عن مدى التزام الطالب)',
+  'rating_message_preview': 'الرسالة التي ستصل للطالب',
+  'save_rating': 'حفظ التقييم',
+  'rating_saved_success': 'تم حفظ التقييم الشهري بنجاح',
+  'rating_saved_local_only':
+      'حُفظ التقييم على جهازك فقط ولم يصل للسيرفر — تحقق من الاتصال وصلاحيات المعلم ثم أعد الحفظ',
+  'my_monthly_rating': 'تقييمي الشهري من المعلم',
+  'no_rating_yet': 'لم يضف معلمك تقييماً شهرياً بعد، سيظهر هنا فور صدوره',
+  'options': 'خيارات',
+  'the_month': 'الشهر',
+  'the_year': 'السنة',
 
   // Drawer subtitles
   'drawer_subtitle_profile': 'تعديل الاسم والصورة والبيانات الشخصية',
@@ -350,6 +363,19 @@ final Map<String, String> teacherTranslationsEn = {
   'clear_chat_failed': 'Failed to clear chat history',
   'forward_to': 'Forward to',
   'circle_background':'Circle Background',
+  'add_monthly_rating': 'Add Monthly Rating',
+  'monthly_rating': 'Monthly Rating',
+  'choose_rating_level': 'Choose rating level (student commitment)',
+  'rating_message_preview': 'Message the student will receive',
+  'save_rating': 'Save Rating',
+  'rating_saved_success': 'Monthly rating saved successfully',
+  'rating_saved_local_only':
+      'Rating saved on this device only and did not reach the server — check connection and teacher permissions, then save again',
+  'my_monthly_rating': 'My Monthly Rating from Teacher',
+  'no_rating_yet': 'Your teacher has not added a monthly rating yet',
+  'options': 'Options',
+  'the_month': 'Month',
+  'the_year': 'Year',
   
 
   // Drawer subtitles

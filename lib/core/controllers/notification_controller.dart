@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io' show Platform; // استيراد مكتبة IO للتعامل مع خصائص النظام مثل نوع المنصة (أندرويد/iOS)
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart'; // استيراد حزمة فلاتر الأساسية للواجهات والألوان
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والتنقل
 import 'package:supabase_flutter/supabase_flutter.dart'; // استيراد حزمة Supabase للتعامل مع قاعدة البيانات السحابية
 import 'package:get_storage/get_storage.dart'; // استيراد مكتبة تخزين البيانات المحلية البسيطة
@@ -26,12 +28,34 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
 
   static const String _lastSeenNotificationKey = 'last_seen_notification_id';
 
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  bool _wasOffline = false;
+
   @override
   void onInit() {
     super.onInit();
     // إضافة مراقب لحالة التطبيق لمزامنة البيانات عند العودة من الخلفية (Lifecycle)
     WidgetsBinding.instance.addObserver(this);
-    
+
+    // عند عودة الإنترنت بعد انقطاع: تحديث فوري للكاش والقائمة
+    // (يصلح مشكلة بقاء الرسالة المحذوفة من الإدارة ظاهرة من الكاش القديم)
+    try {
+      _connectivitySub =
+          Connectivity().onConnectivityChanged.listen((results) {
+        final online = !results.contains(ConnectivityResult.none);
+        if (!online) {
+          _wasOffline = true;
+          return;
+        }
+        if (_wasOffline) {
+          _wasOffline = false;
+          if (_supabase.auth.currentUser != null) {
+            refreshData();
+          }
+        }
+      });
+    } catch (_) {}
+
     // مراقبة حالة تسجيل الدخول: عند الدخول نبدأ العمل، وعند الخروج ننظف البيانات
     _supabase.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
@@ -49,6 +73,7 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
   @override
   void onClose() {
     WidgetsBinding.instance.removeObserver(this); // إزالة المراقب عند إغلاق المتحكم
+    _connectivitySub?.cancel();
     super.onClose();
   }
 
@@ -235,7 +260,30 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
           .map((data) => NotificationModel.fromJson(data))
           .toList();
 
-      notifications.assignAll(fetched);
+      // دمج الإشعارات الموجّهة للمستخدم تحديداً (رسائل التقييمات لأصحاب تقييم محدد)
+      // عبر عمود target_user_ids — مع تجاهل الخطأ بصمت إذا لم يُطبَّق الـ migration بعد
+      if (userId != null) {
+        try {
+          final targeted = await _supabase
+              .from('notifications')
+              .select()
+              .filter('target_user_ids', 'cs', '{$userId}')
+              .neq('sender_id', userId)
+              .order('created_at', ascending: false)
+              .limit(50);
+          final ids = fetched.map((e) => e.id).toSet();
+          for (final data in (targeted as List)) {
+            final n = NotificationModel.fromJson(data);
+            if (!ids.contains(n.id)) {
+              fetched.add(n);
+              ids.add(n.id);
+            }
+          }
+          fetched.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        } catch (_) {}
+      }
+
+      notifications.assignAll(fetched.take(50).toList());
       _updateUnreadNotificationsCount();
       _storage.write(
         'notifications_cache',
@@ -280,6 +328,17 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
     }
   }
 
+  /// كتابة الكاش المحلي (تُستدعى بعد كل تغيير: جلب/إضافة/حذف/تعديل)
+  /// الكاش يُكتب دائماً من السيرفر عند نجاح الجلب — فيُحذف المحذوف تلقائياً
+  void _writeCache() {
+    try {
+      _storage.write(
+        'notifications_cache',
+        notifications.take(50).map((e) => e.toJson()).toList(),
+      );
+    } catch (_) {}
+  }
+
   // استماع Realtime لتحديث قائمة إشعارات الإدارة لحظياً أثناء فتح التطبيق
   void _listenToNewNotifications() {
     final role = currentUserRole.value;
@@ -299,16 +358,41 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
               final newNotification = NotificationModel.fromJson(payload.newRecord);
               if (newNotification.senderId == currentUserId) return;
 
-              if (newNotification.targetRole == currentRole || newNotification.targetRole == 'all') {
+              final bool isGeneralTarget = newNotification.targetRole ==
+                      currentRole ||
+                  newNotification.targetRole == 'all';
+              // رسائل التقييم الموجّهة: تصل صاحبها حتى لو target_role لا يطابقه
+              final bool isTargetedToMe = currentUserId != null &&
+                  newNotification.targetUserIds.contains(currentUserId);
+              if (isGeneralTarget || isTargetedToMe) {
                 // إضافة الإشعار للقائمة فوراً دون انتظار Firebase
                 if (!notifications.any((n) => n.id == newNotification.id)) {
                   notifications.insert(0, newNotification);
+                  // حفظ نسخة محلية لتظهر في شاشة الإشعارات حتى بعد إعادة الفتح
+                  _writeCache();
                   _updateUnreadNotificationsCount();
                 }
               }
             } else if (payload.eventType == PostgresChangeEvent.delete) {
                final deletedId = payload.oldRecord['id'].toString();
+               final before = notifications.length;
                notifications.removeWhere((n) => n.id == deletedId);
+               // مزامنة الكاش فور الحذف حتى لا تعود الرسالة المحذوفة بعد إعادة الفتح
+               if (notifications.length != before) {
+                 _writeCache();
+                 _updateUnreadNotificationsCount();
+               }
+            } else if (payload.eventType == PostgresChangeEvent.update) {
+               try {
+                 final updated =
+                     NotificationModel.fromJson(payload.newRecord);
+                 final i =
+                     notifications.indexWhere((n) => n.id == updated.id);
+                 if (i != -1) {
+                   notifications[i] = updated;
+                   _writeCache();
+                 }
+               } catch (_) {}
             }
           },
         )

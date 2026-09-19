@@ -2,6 +2,9 @@ import 'package:flutter/material.dart'; // استيراد حزمة ماتيري�
 import 'package:get/get.dart'; // استيراد حزمة GetX لإدارة الحالة والترجمة
 import 'package:url_launcher/url_launcher.dart'; // استيراد مكتبة فتح الروابط الخارجية
 import '../controller/student_monitoring_controller.dart'; // استيراد متحكم مراقبة الطلاب
+import '../controller/monthly_rating_controller.dart'; // متحكم التقييم الشهري
+import '../models/monthly_rating_model.dart'; // مستويات التقييم الشهري
+import '../widget/monthly_rating_dialog.dart'; // حوار إضافة التقييم الشهري
 import 'student_detail_progress_screen.dart'; // استيراد شاشة تفاصيل تقدم الطالب
 
 /// شاشة عرض قائمة الطلاب التابعين للمعلم لمراقبة تقدمهم (الجداول)
@@ -17,6 +20,18 @@ class DataStudents extends StatelessWidget {
     final StudentMonitoringController controller = Get.put(
       StudentMonitoringController(),
     );
+    // متحكم التقييم الشهري (لجلب آخر تقييم لكل طالب وعرضه)
+    final MonthlyRatingController ratingController = Get.put(
+      MonthlyRatingController(),
+      permanent: true,
+    );
+    // جلب batch واحد عند أول بناء + تحديث عند تغيّر قائمة الطلاب (بدون ever داخل build لتفادي تكدّس المستمعين)
+    if (controller.students.isNotEmpty) {
+      Future.microtask(() {
+        final ids = controller.students.map((e) => e.id.toString()).toList();
+        if (ids.isNotEmpty) ratingController.fetchLatestForStudents(ids);
+      });
+    }
 
     return RefreshIndicator(
       onRefresh: () => controller.fetchStudents(), // إضافة خاصية السحب للتحديث
@@ -48,6 +63,9 @@ class DataStudents extends StatelessWidget {
                   ],
                 ); // عرض رسالة "لا يوجد طلاب حالياً" مترجمة
               }
+              // جلب آخر التقييمات لكل الطلاب الظاهرين (batch واحد، مع حماية من التكرار داخل الكنترولر)
+              final ids = controller.students.map((e) => e.id.toString()).toList();
+              Future.microtask(() => ratingController.fetchLatestForStudents(ids));
               return ListView.builder(
                 // بناء قائمة قابلة للتمرير بكفاءة
                 physics: const AlwaysScrollableScrollPhysics(), // التأكد من قابلية التمرير للسحب
@@ -140,10 +158,46 @@ class DataStudents extends StatelessWidget {
                             ),
                         ],
                       ),
-                      subtitle: Text(
-                        '${'level'.tr}: ${student.level.tr}',
-                        style: const TextStyle(fontFamily: 'Cairo', fontSize: 12),
-                      ), // عرض مستوى الطالب مترجماً
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${'level'.tr}: ${student.level.tr}',
+                            style: const TextStyle(fontFamily: 'Cairo', fontSize: 12),
+                          ),
+                          Obx(() {
+                            final rating = ratingController.latestFor(student.id);
+                            if (rating == null) return const SizedBox.shrink();
+                            final lv = MonthlyRatingLevel.fromKey(rating.rating);
+                            return Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: lv.color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: lv.color.withValues(alpha: 0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(lv.icon, size: 12, color: lv.color),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${'monthly_rating'.tr}: ${Get.locale?.languageCode == 'en' ? lv.titleEn : lv.titleAr}',
+                                    style: TextStyle(
+                                      fontFamily: 'Cairo',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: lv.color,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ), // عرض مستوى الطالب مترجماً مع شارة آخر تقييم شهري
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -153,6 +207,12 @@ class DataStudents extends StatelessWidget {
                             onSelected: (value) async {
                               if (value == 'toggle_supervisor') {
                                 controller.toggleCircleSupervisor(student);
+                              } else if (value == 'monthly_rating') {
+                                // فتح حوار إضافة/تعديل التقييم الشهري (اختيار من مستويات جاهزة)
+                                showMonthlyRatingDialog(
+                                  studentId: student.id,
+                                  studentName: student.name,
+                                );
                               } else if (value == 'view_details') {
                                 controller.fetchStudentDetails(student.id);
                                 Get.to(
@@ -174,6 +234,16 @@ class DataStudents extends StatelessWidget {
                               }
                             },
                             itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'monthly_rating',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.star_rate_rounded, size: 18, color: Colors.amber),
+                                    const SizedBox(width: 8),
+                                    Text('add_monthly_rating'.tr, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
                               PopupMenuItem(
                                 value: 'view_details',
                                 child: Row(

@@ -29,6 +29,64 @@ class ExamCommitteeScreen extends StatelessWidget { // تعريف ودجت لا 
             // تم حذف قسم العنوان وزر التحديث من هنا للاعتماد على الـ AppBar العلوي
             // تم حذف حقل البحث اليدوي من هنا للاعتماد على بحث الـ AppBar العلوي
 
+            // فلترة حسب الجنس (الكل / ذكور / إناث)
+            Obx(() {
+              final selected = circlesController.selectedGenderFilter.value;
+              Widget chip(Gender v, String label, IconData icon) {
+                final isSelected = selected == v;
+                return GestureDetector(
+                  onTap: () =>
+                      circlesController.selectedGenderFilter.value = v,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon,
+                            size: 16,
+                            color: isSelected
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Text(label,
+                            style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? theme.colorScheme.onPrimary
+                                    : theme.colorScheme.primary)),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    chip(Gender.all, 'all'.tr, Icons.groups_rounded),
+                    chip(Gender.male, 'male'.tr, Icons.male_rounded),
+                    chip(Gender.female, 'female'.tr, Icons.female_rounded),
+                  ],
+                ),
+              );
+            }),
+
             // قائمة الحلقات مع تفاصيل المختبرين وتحديثها تلقائياً عند البحث أو التغيير
             Expanded( // توسيع القائمة لتأخذ المساحة المتبقية
               child: Obx(() { // استخدام Obx لمراقبة التغييرات في بيانات المتحكم
@@ -37,8 +95,19 @@ class ExamCommitteeScreen extends StatelessWidget { // تعريف ودجت لا 
                   return const Center(child: CircularProgressIndicator()); // عرض مؤشر تقدم في المنتصف
                 }
 
-                // تطبيق فلتر البحث على قائمة الحلقات (البحث يتم عبر circlesController.searchQuery المحدث من الـ AppBar)
+                // تطبيق فلتر البحث + فلتر الجنس على قائمة الحلقات
+                // (البحث يتم عبر circlesController.searchQuery المحدث من الـ AppBar)
+                final genderFilter =
+                    circlesController.selectedGenderFilter.value;
                 final filteredCircles = circlesController.quranCircles.where((circle) { // تصفية القائمة
+                  if (genderFilter == Gender.male &&
+                      circle.gender != Gender.male) {
+                    return false;
+                  }
+                  if (genderFilter == Gender.female &&
+                      circle.gender != Gender.female) {
+                    return false;
+                  }
                   final query = circlesController.searchQuery.value.toLowerCase(); // تحويل نص البحث لحروف صغيرة
                   return circle.name.toLowerCase().contains(query) || // التحقق من مطابقة اسم الحلقة
                          circle.teacherName.toLowerCase().contains(query) || // التحقق من مطابقة اسم المعلم
